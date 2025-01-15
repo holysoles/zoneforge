@@ -1,0 +1,15 @@
+{% extends 'layout.html.j2' %}
+{% block content %}
+    <div class="container">
+        <h3>Management</h3>
+        <div class="zones">
+            {% for zone in zones %}
+            <div class="zone">
+                <h4>
+                    <a href="/zone/{{zone.origin}}"> {{ zone.origin }} </a>
+                </h4>
+                <p> Records Managed: {{ zone.record_count }} </p>
+            </div>
+            {% endfor %}
+        </div>
+{% endblock %}

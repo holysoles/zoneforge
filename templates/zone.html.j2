@@ -1,0 +1,40 @@
+{% extends 'layout.html.j2' %}
+{% block content %}
+    <div class="manager">
+        <h3>Zone: {{zone}}</h3>
+        <div class="zones">
+    <table>
+        <thead>
+            <tr>
+                <th>Select</th>
+                <th>Record Name</th>
+                <th>Record Type</th>
+                <th>Data</th>
+                <th>Comment</th>
+                <th>Manage</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records %}
+            <tr>
+                <td><input type="checkbox"></td>
+                <td>{{ record.name }}</td>
+                <td>{{ record.type }}</td>
+                <td>
+                    {% if record.data %}
+                        {% for key, value in record.data.items() %}
+                            {{ key[0]|upper}}{{key[1:] }}: {{ value }}<br>
+                        {% endfor %}
+                    {% endif %}
+                </td>
+                <td>{{ record.comment }}</td>
+                <td class="actions">
+                    <button class="edit">Edit</button>
+                    <button class="delete">Delete</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+        </div>
+{% endblock %}
