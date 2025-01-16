@@ -3,10 +3,27 @@ from dns.zone import Zone
 from dns.name import Name
 from dns.rdataclass import *
 from dns.rdatatype import *
-from zoneforge.zf import get_zones, get_records
+from zoneforge.zf import get_zones, create_zone, delete_zone, get_records
+from zoneforge.exceptions import *
 
 #parser = reqparse.RequestParser()
 #parser.add_argument('record_type', type=int, help='Type of DNS Record')
+
+class ZFErrors():
+    dict = {
+        'ZoneNotFoundError': {
+            'message': "A zone with that name does not exist.",
+            'status': 404,
+        },
+        'ZoneAlreadyExists': {
+            'message': "A zone with that name already exists.",
+            'status': 403,
+        },
+        'RecordNotFoundError': {
+            'message': "A record with that name does not exist.",
+            'status': 404,  
+        },
+    }
 
 class StatusResource(Resource):
     def get(self):
@@ -15,20 +32,30 @@ class StatusResource(Resource):
 class ZoneResource(Resource):
     def get(self, zone_name=None):
         zones_response = []
-        try:
-            zones = get_zones(zone_name)
-            if not zones:
-                return 404
-            else:
-                for zone in zones:
-                    print(f"DEBUG: transforming zone ${zone}")
-                    zones_response.append(transform_zone(zone))
-        except:
-            return 500
+        zones = get_zones(zone_name)
+        if not zones:
+            raise ZoneNotFoundError
+        else:
+            for zone in zones:
+                print(f"DEBUG: transforming zone ${zone}")
+                zones_response.append(transform_zone(zone))
         
         if zone_name:
             zones_response = zones_response[0] # return single element when zone_name was specified
         return zones_response
+    
+    def post(self, zone_name):
+        new_zone = create_zone(zone_name)
+        new_zone_response = transform_zone(new_zone)
+        return new_zone_response
+    
+    def delete(self, zone_name):
+        if delete_zone(zone_name):
+            return {}
+        else:
+            raise ZoneNotFoundError
+        
+
 
 class RecordResource(Resource):
     def get(self, zone_name, record_name=None):
@@ -40,9 +67,24 @@ class RecordResource(Resource):
         return_records = transform_records(records, zone_name)
 
         if record_name and not return_records:
-            return "record not found", 404
+            raise NotFound
         return return_records
     
+    def post(self, zone_name):
+        print()
+    
+    def put(self, zone_name):
+        print()
+
+    def patch(self, zone_name):
+        print()
+    
+    def delete(self, zone_name):
+        if False:
+            return {}
+        else:
+            raise RecordNotFoundError
+
 def transform_zone(zone: Zone) -> dict:
     return {
         "origin": str(zone.origin),
