@@ -1,7 +1,5 @@
-from os import listdir, getenv
-from os.path import join, splitext
-from flask import Flask, request, Response, render_template, url_for
-from flask_restful import Api, reqparse
+from flask import Flask, render_template
+from flask_restx import Api
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_minify import minify
 import zoneforge.zf_api as zf_api
@@ -13,14 +11,16 @@ app.wsgi_app = ProxyFix(
     app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
 )
 # API Setup
-api_errors = zf_api.ZFErrors.dict
-api = Api(app, "/api", errors=api_errors)
+api = Api(app, prefix= '/api', doc='/api',)
 
 
 @app.route("/", methods=['GET'])
 def home():
     zf_zone = zf_api.ZoneResource()
-    zones = zf_zone.get()
+    try:
+        zones = zf_zone.get()
+    except:
+        zones = []
     return render_template('home.html.j2', zones=zones)
 
 @app.route("/zone/<string:zone_name>", methods=['GET'])

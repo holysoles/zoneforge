@@ -1,23 +1,16 @@
-$TTL 36000
 $ORIGIN example.com.
-example.com. IN      SOA     ns1.example.com. hostmaster.example.com. (
-               2005081201      ; serial
-               28800   ; refresh (8 hours)
-               1800    ; retry (30 mins)
-               2592000 ; expire (30 days)
-               86400 ) ; minimum (1 day)
-
-example.com.     86400   NS      ns1.example.com.
-example.com.     86400   NS      ns2.example.com.
-example.com.     86400   MX 10   mail.example.com.
-example.com.     86400   MX 20   mail2.example.com.
-example.com.     86400   A       192.168.10.10
-example.com.  86400    TXT   "This domain name is reserved for use in documentation"
-ns1.example.com.        86400   A       192.168.1.10
-ns2.example.com.        86400   A       192.168.1.20
-mail.example.com.       86400   A       192.168.2.10
-mail2.example.com.      86400   A       192.168.2.20
-www2.example.com.       86400   A    192.168.10.20
-www.example.com.        86400 CNAME     example.com.
-ftp.example.com.        86400 CNAME     example.com.
-webmail.example.com.    86400 CNAME     example.com.
+@ 36000 IN SOA ns1 hostmaster 2005081201 28800 1800 2592000 86400 ; minimum (1 day)
+@ 86400 IN NS ns1
+@ 86400 IN NS ns2
+@ 86400 IN MX 10 mail
+@ 86400 IN MX 20 mail2
+@ 86400 IN A 192.168.10.10
+@ 86400 IN TXT "This domain name is reserved for use in documentation"
+ftp 86400 IN CNAME @
+mail 86400 IN A 192.168.2.10
+mail2 86400 IN A 192.168.2.20
+ns1 86400 IN A 192.168.1.10
+ns2 86400 IN A 192.168.1.20
+webmail 86400 IN CNAME @
+www 86400 IN CNAME @ ; comments can be used to additional document information
+www2 86400 IN A 192.168.10.20

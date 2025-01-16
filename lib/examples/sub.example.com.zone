@@ -1,0 +1,3 @@
+$ORIGIN sub.example.com.
+@ 36000 IN SOA ns1 hostmaster 2005081201 28800 1800 2592000 86400
+@ 86400 IN NS ns1
