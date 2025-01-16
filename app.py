@@ -13,7 +13,9 @@ app.wsgi_app = ProxyFix(
     app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
 )
 # API Setup
-api = Api(app, "/api")
+api_errors = zf_api.ZFErrors.dict
+api = Api(app, "/api", errors=api_errors)
+
 
 @app.route("/", methods=['GET'])
 def home():

@@ -1,7 +1,8 @@
 import dns.zone
 from dns.exception import DNSException
-from os import listdir
-from os.path import join
+from os import listdir, remove
+from os.path import join, exists
+from zoneforge.exceptions import *
 
 # TODO get this declared in app.py, support it as a env var and arg
 ZONE_FILE_FOLDER = './lib/examples'
@@ -29,6 +30,27 @@ def get_zones(zone_name=None) -> list[dns.zone.Zone]:
             print (e)
             # TODO err handle
     return zones
+
+def create_zone(zone_name) -> bool:
+    zone_file_name = join(ZONE_FILE_FOLDER, f"{zone_name}zone")
+    if exists(zone_file_name):
+        raise ZoneAlreadyExists
+    else:
+        new_zone = dns.zone.Zone(
+            origin=zone_name
+        )
+        with open(zone_file_name, "w") as zone_file:
+            zone_file.write(new_zone.to_text())
+        return new_zone
+
+
+def delete_zone(zone_name) -> bool:
+    zone_file_name = join(ZONE_FILE_FOLDER, f"{zone_name}zone")
+    if exists(zone_file_name):
+        remove(zone_file_name)
+        return True
+    return False
+
 
 def get_records(zone_name, record_name=None, record_type=None) -> dns.name.Name:
     # TODO support filtering on record_type

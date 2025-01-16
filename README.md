@@ -47,7 +47,7 @@ Read only currently. Limited support for record types (A, CNAME, SOA, MX, NS, TX
 |  Delete Zones                          | Planned           |
 |  Multi-zone Support                    | Complete          |
 | **REST API**                            |                    |
-|  CRUD for DNS Zones                    | In Progress       |
+|  CRUD for DNS Zones                    | Done              |
 |  CRUD for DNS Records                  | In Progress       |
 | **Management**                          |                    |
 |  Expanded Record Type Support          | Planned           |
