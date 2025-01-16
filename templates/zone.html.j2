@@ -9,6 +9,7 @@
                 <th>Select</th>
                 <th>Record Name</th>
                 <th>Record Type</th>
+                <th>TTL</th>
                 <th>Data</th>
                 <th>Comment</th>
                 <th>Manage</th>
@@ -20,6 +21,7 @@
                 <td><input type="checkbox"></td>
                 <td>{{ record.name }}</td>
                 <td>{{ record.type }}</td>
+                <td>{{ record.ttl }}</td>
                 <td>
                     {% if record.data %}
                         {% for key, value in record.data.items() %}

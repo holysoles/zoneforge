@@ -25,13 +25,73 @@ ZoneForge simplifies the *management* of RFC1035/BIND-style DNS zone files by pr
 
 ## Zones
 
-Read-Only currently.
+### Create
+
+```shell
+curl -X POST 'http://localhost:5000/api/zone/test.example.com.'
+```
+
+### Read
+
+#### Get all zones
+```shell
+curl -X GET 'http://localhost:5000/api/v1/zone'
+```
+
+#### Get specific zone
+```shell
+curl -X GET 'http://localhost:5000/api/zone/example.com.'
+```
+
+### Delete
+
+```shell
+curl -X DELETE 'http://localhost:5000/api/zone/test.example.com.'
+```
 
 ## Records
 
-Read only currently. Limited support for record types (A, CNAME, SOA, MX, NS, TXT).
+- Limited support for record types (A, CNAME, SOA, MX, NS, TXT).
 
 - EOL comments are supported in the `comments` key of returned records.
+
+#### Create
+
+```shell
+curl -X POST 'http://localhost:5000/api/zone/example.com./record/subdomain' \
+--header 'Content-Type: application/json' \
+--data '{
+    "record_type": "CNAME",
+    "record_data": "ns100.example.com"
+}'
+```
+
+#### Read
+
+```shell
+curl -X GET 'http://localhost:5000/api/zone/example.com./record/subdomain'
+```
+
+#### Update
+
+```shell
+curl -X POST 'http://localhost:5000/api/zone/example.com./record/subdomain' \
+--header 'Content-Type: application/json' \
+--data '{
+    "record_type": "CNAME",
+    "record_data": "subdomain2.example.com"
+}'
+```
+
+#### Delete
+
+```shell
+curl -X DELETE 'http://localhost:5000/api/zone/example.com./record/subdomain' \
+--header 'Content-Type: application/json' \
+--data '{
+    "record_type": "CNAME"
+}'
+```
 
 ## Roadmap
 
@@ -41,14 +101,15 @@ Read only currently. Limited support for record types (A, CNAME, SOA, MX, NS, TX
 |-----------------------------------------|--------------------|
 | **Web Interface**                       |                    |
 |  Create Zones                          | Planned           |
-|  Edit Records                          | Planned           |
-|  Delete Records                        | Planned           |
-|  Create Zones                          | Planned           |
 |  Delete Zones                          | Planned           |
+|  Edit Records                          | Planned           |
+|  Create Records                        | Planned           |
+|  Delete Records                        | Planned           |
 |  Multi-zone Support                    | Complete          |
 | **REST API**                            |                    |
-|  CRUD for DNS Zones                    | Done              |
-|  CRUD for DNS Records                  | In Progress       |
+|  CRUD for DNS Zones                    | Complete          |
+|  CRUD for DNS Records                  | Complete          |
+|  Thread Safety for DNS Record CRUD     | Backlog           |
 | **Management**                          |                    |
 |  Expanded Record Type Support          | Planned           |
 |  Authentication                        | Backlog           |

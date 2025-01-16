@@ -1,29 +1,14 @@
-from flask_restful import Resource, reqparse
+from flask_restx import Resource, reqparse
 from dns.zone import Zone
 from dns.name import Name
 from dns.rdataclass import *
 from dns.rdatatype import *
-from zoneforge.zf import get_zones, create_zone, delete_zone, get_records
-from zoneforge.exceptions import *
+from zoneforge.zf import get_zones, create_zone, delete_zone, get_records, create_record, update_record, delete_record
+from werkzeug.exceptions import *
 
-#parser = reqparse.RequestParser()
-#parser.add_argument('record_type', type=int, help='Type of DNS Record')
-
-class ZFErrors():
-    dict = {
-        'ZoneNotFoundError': {
-            'message': "A zone with that name does not exist.",
-            'status': 404,
-        },
-        'ZoneAlreadyExists': {
-            'message': "A zone with that name already exists.",
-            'status': 403,
-        },
-        'RecordNotFoundError': {
-            'message': "A record with that name does not exist.",
-            'status': 404,  
-        },
-    }
+parser = reqparse.RequestParser()
+parser.add_argument('record_type', type=str, help='Type of DNS Record', required=False) # TODO make a list of valid values
+parser.add_argument('record_data', type=str, help='RData for the DNS Record', required=False) #TODO custom type
 
 class StatusResource(Resource):
     def get(self):
@@ -34,7 +19,7 @@ class ZoneResource(Resource):
         zones_response = []
         zones = get_zones(zone_name)
         if not zones:
-            raise ZoneNotFoundError
+            raise NotFound('')
         else:
             for zone in zones:
                 print(f"DEBUG: transforming zone ${zone}")
@@ -53,37 +38,47 @@ class ZoneResource(Resource):
         if delete_zone(zone_name):
             return {}
         else:
-            raise ZoneNotFoundError
+            raise NotFound('A zone with that name does not exist.')
         
 
 
 class RecordResource(Resource):
     def get(self, zone_name, record_name=None):
-        #args = parser.parse_args()
-        #record_type = args.get('record_type')
-        records = get_records(zone_name, record_name, record_type=None) #TODO unhardcode
+        args = parser.parse_args()
+        record_type = args.get('record_type')
+        records = get_records(zone_name, record_name, record_type) #TODO unhardcode
         if record_name:
             records = {record_name: records}
-        return_records = transform_records(records, zone_name)
+        return_records = transform_records(records)
 
         if record_name and not return_records:
             raise NotFound
         return return_records
     
-    def post(self, zone_name):
-        print()
+    def post(self, zone_name, record_name):
+        args = parser.parse_args()
+        record_type = args.get('record_type')
+        record_data = args.get('record_data')
+        new_record = create_record(zone_name, record_name, record_type, record_data)
+        new_record = {record_name: new_record}
+        new_record_response = transform_records(new_record)[0]
+        return new_record_response
     
-    def put(self, zone_name):
-        print()
-
-    def patch(self, zone_name):
-        print()
+    def put(self, zone_name, record_name):
+        args = parser.parse_args()
+        record_type = args.get('record_type')
+        record_data = args.get('record_data')
+        updated_record = update_record(zone_name, record_name, record_type, record_data)
+        updated_record = {record_name: updated_record}
+        updated_record_response = transform_records(updated_record)[0]
+        return updated_record_response
     
-    def delete(self, zone_name):
-        if False:
-            return {}
-        else:
-            raise RecordNotFoundError
+    def delete(self, zone_name, record_name):
+        args = parser.parse_args()
+        record_type = args.get('record_type')
+        record_data = args.get('record_data')
+        delete_record(zone_name, record_name, record_type)
+        return {}
 
 def transform_zone(zone: Zone) -> dict:
     return {
@@ -92,7 +87,7 @@ def transform_zone(zone: Zone) -> dict:
     }
     
 
-def transform_records(names, zone_name) -> dict:
+def transform_records(names) -> dict:
     transformed_records = []
     for name, node in names.items():
         print(f"DEBUG: transforming records under name {name}")
@@ -102,6 +97,7 @@ def transform_records(names, zone_name) -> dict:
                 record = {
                             "name": str(name),
                             "type": record_type._name_,
+                            "ttl": rdataset.ttl,
                             "data": {},
                         }
                 if getattr(rdata, "rdcomment"):
