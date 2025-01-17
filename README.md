@@ -5,6 +5,9 @@ ZoneForge is a management tool for [RFC1035](https://rfc-annotations.research.ic
 ![GitHub License](https://img.shields.io/github/license/holysoles/zoneforge)
 ![Issues](https://img.shields.io/github/issues/holysoles/zoneforge)
 
+> [!WARNING]  
+> This is in early development and should be considered unstable until the first official release.
+
 ## About
 
 Zone files are a commonly supported standard for serving [authoritative DNS](https://en.wikipedia.org/wiki/Name_server#Authoritative_name_server) zone records, such as in [BIND](https://www.isc.org/bind/), [NSD](https://github.com/NLnetLabs/nsd), and [CoreDNS's file plugin](https://coredns.io/plugins/file/). While those DNS server implementations are highly performant and lightweight, they don't provide a user-friendly way to manage their zone's records.
