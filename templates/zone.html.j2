@@ -1,42 +1,53 @@
 {% extends 'layout.html.j2' %}
 {% block content %}
     <div class="manager">
-        <h3>Zone: {{zone}}</h3>
-        <div class="zones">
-    <table>
-        <thead>
-            <tr>
-                <th>Select</th>
-                <th>Record Name</th>
-                <th>Record Type</th>
-                <th>TTL</th>
-                <th>Data</th>
-                <th>Comment</th>
-                <th>Manage</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for record in records %}
-            <tr>
-                <td><input type="checkbox"></td>
-                <td>{{ record.name }}</td>
-                <td>{{ record.type }}</td>
-                <td>{{ record.ttl }}</td>
-                <td>
-                    {% if record.data %}
-                        {% for key, value in record.data.items() %}
-                            {{ key[0]|upper}}{{key[1:] }}: {{ value }}<br>
-                        {% endfor %}
-                    {% endif %}
-                </td>
-                <td>{{ record.comment }}</td>
-                <td class="actions">
-                    <button class="edit">Edit</button>
-                    <button class="delete">Delete</button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        <div class="header-row">
+            <h3>Zone: {{zone}}</h3>
+            <div class="zone-options">
+                {% if modal is defined %}
+                    <button class="delete-zone" onclick="document.querySelector('#{{ modal.id }}').classList.toggle('modal-active')">{{ modal['open-char'] }}</button>
+                {% endif %}
+            </div>
         </div>
+        <div class="zones">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Select</th>
+                        <th>Record Name</th>
+                        <th>Record Type</th>
+                        <th>TTL</th>
+                        <th>Data</th>
+                        <th>Comment</th>
+                        <th>Manage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr>
+                        <td><input type="checkbox"></td>
+                        <td>{{ record.name }}</td>
+                        <td>{{ record.type }}</td>
+                        <td>{{ record.ttl }}</td>
+                        <td>
+                            {% if record.data %}
+                                {% for key, value in record.data.items() %}
+                                    {{ key[0]|upper}}{{key[1:] }}: {{ value }}<br>
+                                {% endfor %}
+                            {% endif %}
+                        </td>
+                        <td>{{ record.comment }}</td>
+                        <td class="actions">
+                            <button class="edit">Edit</button>
+                            <button class="delete">Delete</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if modal is defined %}
+            {% include 'modal.html.j2' %}
+        {% endif %}
+    </div>
 {% endblock %}

@@ -55,6 +55,7 @@ curl -X DELETE 'http://localhost:5000/api/zone/test.example.com.'
 
 - EOL comments are supported in the `comments` key of returned records.
 
+
 #### Create
 
 ```shell
@@ -100,7 +101,7 @@ curl -X DELETE 'http://localhost:5000/api/zone/example.com./record/subdomain' \
 | **Feature**                             | **Status**         |
 |-----------------------------------------|--------------------|
 | **Web Interface**                       |                    |
-|  Create Zones                          | Planned           |
+|  Create Zones                          | Complete          |
 |  Delete Zones                          | Planned           |
 |  Edit Records                          | Planned           |
 |  Create Records                        | Planned           |
@@ -114,6 +115,7 @@ curl -X DELETE 'http://localhost:5000/api/zone/example.com./record/subdomain' \
 |  Expanded Record Type Support          | Planned           |
 |  Authentication                        | Backlog           |
 |  Zone Import/Export                    | Backlog           |
+|  Preserve Default Zone TTL             | Backlog           |
 | **CI/CD**                               |                    |
 |  Dockerfile                            | Planned           |
 |  GitHub Actions Build Pipeline         | Planned           |
@@ -128,6 +130,7 @@ curl -X DELETE 'http://localhost:5000/api/zone/example.com./record/subdomain' \
 
 ## Zone Files
 
+- [Zone File Validator](https://checkzone.dev/) by @woodjme
 - [DYN](https://help.dyn.com/how-to-format-a-zone-file/)
 - [Oracle](https://docs.oracle.com/en-us/iaas/Content/DNS/Reference/formattingzonefile.htm)
 

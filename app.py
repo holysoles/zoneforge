@@ -3,6 +3,7 @@ from flask_restx import Api
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_minify import minify
 import zoneforge.zf_api as zf_api
+from zoneforge.modal_data import *
 
 # Flask App setup
 app = Flask(__name__, static_folder='static', static_url_path='')
@@ -21,7 +22,7 @@ def home():
         zones = zf_zone.get()
     except:
         zones = []
-    return render_template('home.html.j2', zones=zones)
+    return render_template('home.html.j2', zones=zones, modal=ZONE_CREATION, modal_api='/api/zone')
 
 @app.route("/zone/<string:zone_name>", methods=['GET'])
 def zone(zone_name):

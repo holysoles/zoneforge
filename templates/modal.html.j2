@@ -1,0 +1,29 @@
+<div id="{{ modal.id }}" class="modal">
+    <div class="modal-content">
+        <span class="close">
+            <button onclick="document.querySelector('#{{ modal.id }} form').reset() ;document.querySelector('#{{ modal.id }}').classList.toggle('modal-active')">{{ modal['close-char'] }}</button>
+        </span>
+        <form action="{{ modal_api }}?browser=true" method="{{ modal['api-method'] }}">
+            <h2>{{ modal.heading }}</h2>
+            {% for section in modal.form %}
+                {% if section.heading %}
+                <h3>{{ section.heading }}</h3>
+                {% endif %}
+                <div class="form-group">
+                {% for input in section.inputs %}
+                    <div class="form-item">
+                        <label for="{{ input.id }}">{{ input.label }}
+                            <span class="tooltip">{{ input.tooltip }}</span>
+                        </label>
+                        <input type="{{ input.type }}" id="{{ input.id }}" name="{{ input.id }}" {% if input.default %} value="{{ input.default }}" {% endif %}
+                        {% if input.required %} required {% endif %}
+                        {% if 'placeholder' in input %} placeholder="{{ input.placeholder }}" {% endif %}
+                        />
+                    </div>
+                {% endfor %}
+                </div>
+            {% endfor %}
+            <input type="submit" value="Submit"/>
+        </form>
+    </div>
+</div>
