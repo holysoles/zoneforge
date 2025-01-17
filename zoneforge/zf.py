@@ -1,10 +1,15 @@
 import dns.immutable
 import dns.node
+import dns.name
+import dns.rdatatype
 import dns.zone
 import dns.rdata
+import dns.rdataset
+import dns.rrset
 import dns.versioned
 import dns.transaction
-from os import listdir, remove
+from datetime import datetime
+from os import remove
 from os.path import join, exists, basename
 import glob
 from werkzeug.exceptions import *
@@ -12,7 +17,7 @@ from werkzeug.exceptions import *
 # TODO get this declared in app.py, support it as a env var and arg
 ZONE_FILE_FOLDER = './lib/examples'
 
-def get_zones(zone_name=None) -> list[dns.zone.Zone]:
+def get_zones(zone_name: dns.name.Name = None) -> list[dns.zone.Zone]:
     zonefile_map = {}
     zones = []
     if zone_name:
@@ -29,8 +34,9 @@ def get_zones(zone_name=None) -> list[dns.zone.Zone]:
 
     for zone_name, zone_file_path in zonefile_map.items():
         if not exists(zone_file_path):
-            raise NotFound('A zone with that name does not exist.')
+            continue
         try:
+            #TODO parse file, dump ttl to .ttl file for zone if there is a ttl directive
             zone = dns.zone.from_file(
                 f=zone_file_path,
                 origin=zone_name,
@@ -42,20 +48,28 @@ def get_zones(zone_name=None) -> list[dns.zone.Zone]:
             raise InternalServerError
     return zones
 
-def create_zone(zone_name) -> bool:
+def create_zone(
+        zone_name: dns.name.Name,
+        soa_rrset: dns.rrset.RRset,
+        ns_rrset: dns.rrset.RRset,
+        ns_a_rrset: dns.rrset.RRset = None
+    ) -> dns.zone.Zone:
     zone_file_path = join(ZONE_FILE_FOLDER, f"{zone_name}zone")
     if exists(zone_file_path):
         raise Forbidden('A zone with that name already exists.')
     else:
         new_zone = dns.zone.Zone(
-            origin=zone_name
+            origin=zone_name,
         )
-        # TODO need to have SOA record at creation time
-        with open(zone_file_path, "w") as zone_file:
-            zone_file.write(new_zone.to_text())
+        with new_zone.writer() as txn:
+            txn.add(soa_rrset)
+            txn.add(ns_rrset)
+            if ns_a_rrset:
+                txn.add(ns_a_rrset)
+        _write_zone(new_zone)
         return new_zone
 
-def delete_zone(zone_name) -> bool:
+def delete_zone(zone_name: dns.name.Name) -> bool:
     zone_file_name = join(ZONE_FILE_FOLDER, f"{zone_name}zone")
     if exists(zone_file_name):
         remove(zone_file_name)
@@ -63,6 +77,9 @@ def delete_zone(zone_name) -> bool:
     return False
 
 def _write_zone(zone: dns.zone.Zone):
+    update_timestamp = int(datetime.now().strftime("%Y%m%d"))
+    with zone.writer() as txn:
+        txn.update_serial(value=update_timestamp, relative=False)
     print(f"INFO: Writing zone {zone.origin} to disk")
     zone_file_path = join(ZONE_FILE_FOLDER, f"{zone.origin}zone")
     zone.to_file(f=zone_file_path, want_comments=True, want_origin=True)
@@ -70,35 +87,57 @@ def _write_zone(zone: dns.zone.Zone):
 
 
 
-def get_records(zone_name, record_name=None, record_type=None) -> dns.immutable.Dict | dns.versioned.Zone:
-    # TODO support filtering on record_type
+def get_records(
+        zone_name: str,
+        record_name: str = None,
+        record_type: str = None,
+    ) -> dns.rrset.RRset:
     zone = get_zones(zone_name)
     if not zone:
         raise NotFound('the specified zone does not exist.')
     zone = zone[0]
+
     if record_name:
-        return zone[record_name]
+        matching_node = zone[record_name].rdatasets
+
+        if record_type:
+            record_type = dns.rdatatype.from_text(record_type)
+            matching_records = [dns.rrset.from_rdata_list(record_name, ttl=record.ttl, rdatas=record.items) for record in matching_node if record.rdtype == record_type]
+        else:
+            matching_records = [dns.rrset.from_rdata_list(record_name, ttl=record.ttl, rdatas=record.items) for record in matching_node]
+        return matching_records
     else:
-        return zone.nodes
+        record_type = dns.rdatatype.from_text(record_type) if record_type else dns.rdatatype.from_text('ANY')
+        all_records_gen = zone.iterate_rdatasets(rdtype=record_type)
+        all_records = (dns.rrset.from_rdata_list(record[0], ttl=record[1].ttl, rdatas=record[1].items) for record in all_records_gen)
+
+        return list(all_records)
 
 # TODO probably need to handle @/origin in thesemethods .. TBD
 def create_record(
-        zone_name: str,
         record_name: str,
         record_type: str,
-        record_data: dict,
+        record_data: str,
+        zone_name: str = None,
         record_class: dns.rdataclass.RdataClass = "IN",
-        record_ttl: int = 86400
-    ) -> dns.rdata.Rdata:
-    zone = get_zones(zone_name)[0]
-    if zone.get_rdataset(name=record_name, rdtype=record_type):
-        raise BadRequest('specified record already exists.')
-    rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=record_data, ) # TODO add origin, but needs to be DNS name obj
-    with zone.writer() as txn:
-        txn.add(record_name, record_ttl, rdata)
-    print(f"INFO: Created record {record_name} in zone {zone_name} with data '{record_data}'")
-    _write_zone(zone)
-    return zone[record_name]
+        record_ttl: int = 86400,
+        write: bool = True,
+    ) -> dns.rrset.RRset:
+
+    if not zone_name and write:
+        raise ValueError('A zone_name must be provided to write to a zone file.')
+    if zone_name:
+        zone = get_zones(zone_name)[0]
+        if zone.get_rdataset(name=record_name, rdtype=record_type):
+            raise BadRequest('specified record already exists.')
+    new_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=record_data, ) # TODO add origin, but needs to be DNS name obj
+    new_rrset = dns.rrset.from_rdata(record_name, record_ttl, new_rdata)
+    if write:
+        with zone.writer() as txn:
+            txn.add(new_rrset)
+        print(f"INFO: Created record {record_name} in zone {zone_name} with data '{record_data}'")
+        _write_zone(zone)
+    return new_rrset
 
 def update_record(
         zone_name: str,
@@ -106,18 +145,20 @@ def update_record(
         record_type: str,
         record_data: dict,
         record_class: dns.rdataclass.RdataClass = "IN",
-        record_ttl: int = 86400
-    ) -> dns.rdata.Rdata:
+        record_ttl: int = 86400,
+    ) -> dns.rrset.RRset:
     zone = get_zones(zone_name)[0]
     if not zone.get_rdataset(name=record_name, rdtype=record_type):
         raise NotFound('specified record does not exist.')
     new_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=record_data, ) # TODO add origin, but needs to be DNS name obj
+    new_rrset = dns.rrset.from_rdata(record_name, record_ttl, new_rdata)
     # TODO check for planned changes with existing rdata
+
     with zone.writer() as txn:
-        txn.replace(record_name, record_ttl, new_rdata)
+        txn.replace(new_rrset)
     print(f"INFO: Updated record {record_name} in zone {zone_name} with data '{record_data}'")
     _write_zone(zone)
-    return zone[record_name]
+    return new_rrset
 
 def delete_record(
         zone_name: str,

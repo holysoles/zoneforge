@@ -1,7 +1,14 @@
 {% extends 'layout.html.j2' %}
 {% block content %}
     <div class="container">
-        <h3>Management</h3>
+        <div class="header-row">
+            <h3>Zone Management</h3>
+            <div class="home-options">
+                {% if modal is defined %}
+                    <button class="add-zone" onclick="document.querySelector('#{{ modal.id }}').classList.toggle('modal-active')">{{ modal['open-char'] }}</button>
+                {% endif %}
+            </div>
+        </div>
         <div class="zones">
             {% for zone in zones %}
             <div class="zone">
@@ -12,4 +19,8 @@
             </div>
             {% endfor %}
         </div>
+        {% if modal is defined %}
+            {% include 'modal.html.j2' %}
+        {% endif %}
+    </div>
 {% endblock %}
