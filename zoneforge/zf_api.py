@@ -40,17 +40,18 @@ class ZoneResource(Resource):
         return zones_response
     
     def post(self, zone_name: str = None):
-        zone_parser.add_argument('soa_ttl', type=str, help='SOA TTL', required=True) 
-        zone_parser.add_argument('admin_email', type=str, help='Email address of zone admin', required=True) 
-        zone_parser.add_argument('refresh', type=str, help='Record refresh frequency for secondary nameservers', required=True)
-        zone_parser.add_argument('retry', type=str, help='Retry frequency for failed zone transfers', required=True) 
-        zone_parser.add_argument('expire', type=str, help='Period after which the zone is discarded if no updates are received', required=True) 
-        zone_parser.add_argument('minimum', type=str, help='Used for calculation of negative response TTL', required=True)
-        zone_parser.add_argument('primary_ns', type=str, help='Primary nameserver for the zone', required=True) 
-        zone_parser.add_argument('primary_ns_ttl', type=str, help="TTL for the primary nameserver's NS record", required=True)
-        zone_parser.add_argument('primary_ns_ip', type=str, help="IP for the primary nameserver's A record", required=False)
-        zone_parser.add_argument('primary_ns_a_ttl', type=str, help="TTL for the primary nameserver's A record", required=False) 
-        args = zone_parser.parse_args()
+        parser = zone_parser.copy()
+        parser.add_argument('soa_ttl', type=str, help='SOA TTL', required=True) 
+        parser.add_argument('admin_email', type=str, help='Email address of zone admin', required=True) 
+        parser.add_argument('refresh', type=str, help='Record refresh frequency for secondary nameservers', required=True)
+        parser.add_argument('retry', type=str, help='Retry frequency for failed zone transfers', required=True) 
+        parser.add_argument('expire', type=str, help='Period after which the zone is discarded if no updates are received', required=True) 
+        parser.add_argument('minimum', type=str, help='Used for calculation of negative response TTL', required=True)
+        parser.add_argument('primary_ns', type=str, help='Primary nameserver for the zone', required=True) 
+        parser.add_argument('primary_ns_ttl', type=str, help="TTL for the primary nameserver's NS record", required=True)
+        parser.add_argument('primary_ns_ip', type=str, help="IP for the primary nameserver's A record", required=False) #TODO use inputs.ipv4
+        parser.add_argument('primary_ns_a_ttl', type=str, help="TTL for the primary nameserver's A record", required=False) 
+        args = parser.parse_args()
 
         if not zone_name:
             zone_name = args.get("zone_name")
@@ -105,26 +106,30 @@ class RecordResource(Resource):
         return return_records
     
     def post(self, zone_name, record_name):
-        args = record_parser.parse_args()
-        record_type = args.get('record_type')
-        record_data = args.get('record_data')
-        new_record = create_record(record_name=record_name, record_type=record_type, record_data=record_data, zone_name=zone_name)
+        parser = record_parser.copy()
+        parser.replace_argument('record_type', type=str, help='Type of DNS Record', required=True)
+        parser.add_argument('record_data', type=str, help='RData for the DNS Record', required=True)
+        args = parser.parse_args()
+        new_record = create_record(zone_name=zone_name, record_name=record_name, record_type=args['record_type'], record_data=args['record_data'])
         new_record_response = transform_records(new_record)[0]
         return new_record_response
     
     def put(self, zone_name, record_name):
-        args = record_parser.parse_args()
-        record_type = args.get('record_type')
-        record_data = args.get('record_data')
-        updated_record = update_record(zone_name, record_name, record_type, record_data)
+        parser = record_parser.copy()
+        parser.replace_argument('record_type', type=str, help='Type of DNS Record', required=True)
+        parser.add_argument('record_data', type=str, help='RData for the DNS Record', required=True)
+        args = parser.parse_args()
+        updated_record = update_record(zone_name=zone_name, record_name=record_name, record_type=args['record_type'], record_data=args['record_data'])
         updated_record = {record_name: updated_record}
         updated_record_response = transform_records(updated_record)[0]
         return updated_record_response
     
     def delete(self, zone_name, record_name):
-        args = record_parser.parse_args()
-        record_type = args.get('record_type')
-        delete_record(zone_name, record_name, record_type)
+        parser = record_parser.copy()
+        parser.replace_argument('record_type', type=str, help='Type of DNS Record', required=True)
+        parser.add_argument('record_data', type=str, help='RData for the DNS Record', required=True)
+        args = parser.parse_args()
+        delete_record(zone_name=zone_name, record_name=record_name, record_type=args['record_type'], record_data=args['record_data'])
         return {}
 
 def transform_zone(zone: Zone) -> dict:
