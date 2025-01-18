@@ -7,7 +7,7 @@ from zoneforge.modal_data import *
 
 # Flask App setup
 app = Flask(__name__, static_folder='static', static_url_path='')
-minify(app=app, html=True, js=True, cssless=True, static=True)
+#minify(app=app, html=True, js=True, cssless=True, static=True) #TODO enable minify
 app.wsgi_app = ProxyFix(
     app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
 )
