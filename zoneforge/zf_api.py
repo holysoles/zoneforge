@@ -105,12 +105,15 @@ class RecordResource(Resource):
             raise NotFound
         return return_records
     
+    # TODO accept record_ttl as query parameter
+    
     def post(self, zone_name, record_name):
         parser = record_parser.copy()
         parser.replace_argument('record_type', type=str, help='Type of DNS Record', required=True)
         parser.add_argument('record_data', type=str, help='RData for the DNS Record', required=True)
+        parser.add_argument('record_comment', type=str, help='Comment for the DNS Record', required=False)
         args = parser.parse_args()
-        new_record = create_record(zone_name=zone_name, record_name=record_name, record_type=args['record_type'], record_data=args['record_data'])
+        new_record = create_record(zone_name=zone_name, record_name=record_name, record_type=args['record_type'], record_data=args['record_data'], record_comment=args['record_comment'])
         new_record_response = transform_records(new_record)[0]
         return new_record_response
     
@@ -118,9 +121,9 @@ class RecordResource(Resource):
         parser = record_parser.copy()
         parser.replace_argument('record_type', type=str, help='Type of DNS Record', required=True)
         parser.add_argument('record_data', type=str, help='RData for the DNS Record', required=True)
+        parser.add_argument('record_comment', type=str, help='Comment for the DNS Record', required=False)
         args = parser.parse_args()
-        updated_record = update_record(zone_name=zone_name, record_name=record_name, record_type=args['record_type'], record_data=args['record_data'])
-        updated_record = {record_name: updated_record}
+        updated_record = update_record(zone_name=zone_name, record_name=record_name, record_type=args['record_type'], record_data=args['record_data'], record_comment=args['record_comment'])
         updated_record_response = transform_records(updated_record)[0]
         return updated_record_response
     
@@ -139,8 +142,11 @@ def transform_zone(zone: Zone) -> dict:
     }
     
 
-def transform_records(records: RRset) -> dict:
+def transform_records(records: list[RRset]) -> dict:
     transformed_records = []
+    if isinstance(records, RRset):
+        records = [records]
+
     for rrset in records:
         print(f"DEBUG: transforming records under name {rrset.name}")
         for rdata in rrset.items:
@@ -154,6 +160,9 @@ def transform_records(records: RRset) -> dict:
             if getattr(rdata, "rdcomment"):
                 record["comment"] = rdata.rdcomment
             if record_type == SOA:
+                record["data"]["serial"] = rdata.serial
+                record["data"]["refresh"] = rdata.refresh
+                record["data"]["retry"] = rdata.retry
                 record["data"]["expire"] = rdata.expire
                 record["data"]["minimum"] = rdata.minimum
             elif record_type == MX:

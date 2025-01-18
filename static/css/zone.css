@@ -1,3 +1,4 @@
+/* Table structure */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -6,28 +7,33 @@ table {
     border-radius: 8px;
 }
 
+/* Cell styles */
 th, td {
-    padding: 0.75rem;
+    padding: 0.5rem !important;
     text-align: left;
     border: 1px solid #ddd;
+    min-height: 42px;
 }
 
-th {
+th { 
     background-color: #f4f4f9;
     font-weight: bold;
 }
 
-tr:nth-child(even) {
-    background-color: #f9f9f9;
-}
+tr:nth-child(even) { background-color: #f9f9f9; }
+tr:hover { background-color: #f1f1f1; }
 
-tr:hover {
-    background-color: #f1f1f1;
-}
+/* Column widths */
+td:nth-child(1), 
+td:nth-child(1) { width: 60px; min-width: 60px; }
+td:nth-child(2) { min-width: 180px; }
+td:nth-child(3) { min-width: 100px; }
+td:nth-child(4) { min-width: 80px; }
+td:nth-child(5) { min-width: 200px; }
+td:nth-child(6) { min-width: 150px; }
 
-.actions-cell {
-    padding: 0 !important;
-}
+/* Action buttons */
+.actions-cell { min-width: 160px; }
 
 .actions {
     display: flex;
@@ -42,15 +48,24 @@ tr:hover {
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    min-width: 60px; /* Ensures buttons have a minimum width */
-}
-
-.actions button.edit {
-    background-color: #4CAF50;
+    min-width: 60px;
     color: white;
 }
 
-.actions button.delete {
-    background-color: #f44336;
-    color: white;
+.actions button.edit { background-color: #4CAF50; }
+.actions button.delete { background-color: #f44336; }
+.actions button.save { background-color: #2196F3; }
+.actions button.cancel { background-color: #757575; }
+
+/* Edit mode inputs */
+.editable input {
+    width: 100%;
+    padding: 0.5rem;
+    margin: 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: inherit;
+    background-color: white;
+    min-height: 36px;
+    box-sizing: border-box;
 }

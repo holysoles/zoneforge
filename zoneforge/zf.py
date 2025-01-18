@@ -121,6 +121,7 @@ def create_record(
         zone_name: str = None,
         record_class: dns.rdataclass.RdataClass = "IN",
         record_ttl: int = 86400,
+        record_comment: str = None,
         write: bool = True,
     ) -> dns.rrset.RRset:
 
@@ -130,7 +131,8 @@ def create_record(
         zone = get_zones(zone_name)[0]
         if zone.get_rdataset(name=record_name, rdtype=record_type):
             raise BadRequest('specified record already exists.')
-    new_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=record_data, ) # TODO add origin, but needs to be DNS name obj
+    tokenizer_data = f" {record_data}; {record_comment}"
+    new_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=tokenizer_data, ) # TODO add origin, but needs to be DNS name obj
     new_rrset = dns.rrset.from_rdata(record_name, record_ttl, new_rdata)
     if write:
         with zone.writer() as txn:
@@ -146,11 +148,13 @@ def update_record(
         record_data: dict,
         record_class: dns.rdataclass.RdataClass = "IN",
         record_ttl: int = 86400,
+        record_comment: str = None,
     ) -> dns.rrset.RRset:
     zone = get_zones(zone_name)[0]
     if not zone.get_rdataset(name=record_name, rdtype=record_type):
         raise NotFound('specified record does not exist.')
-    new_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=record_data, ) # TODO add origin, but needs to be DNS name obj
+    tokenizer_data = f" {record_data}; {record_comment}"
+    new_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=tokenizer_data, ) # TODO add origin, but needs to be DNS name obj
     new_rrset = dns.rrset.from_rdata(record_name, record_ttl, new_rdata)
     # TODO check for planned changes with existing rdata
 

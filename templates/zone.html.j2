@@ -24,26 +24,26 @@
                 </thead>
                 <tbody>
                     {% for record in records %}
-                    <tr>
+                    {% set record_url_path = url_for("record_resource", **{"record_name": record.name, "zone_name": zone}) %}
+                    <tr data-record-name="{{ record.name }}" data-url="{{ record_url_path }}">
                         <td><input type="checkbox"></td>
-                        <td>{{ record.name }}</td>
-                        <td>{{ record.type }}</td>
-                        <td>{{ record.ttl }}</td>
-                        <td>
+                        <td class="editable" data-field="name">{{ record.name }}</td>
+                        <td class="editable" data-field="type">{{ record.type }}</td>
+                        <td class="editable" data-field="ttl">{{ record.ttl }}</td>
+                        <td class="editable" data-field="data">
                             {% if record.data %}
                                 {% for key, value in record.data.items() %}
                                     {{ key[0]|upper}}{{key[1:] }}: {{ value }}<br>
                                 {% endfor %}
                             {% endif %}
                         </td>
-                        <td>{{ record.comment }}</td>
+                        <td class="editable" data-field="comment">{{ record.comment }}</td>
                         <td class="actions-cell">
-                            {% set record_url_path = url_for("record_resource", **{"record_name": record.name, "zone_name": zone}) %}
-                            {% set record_data_str = record.data.values() | join(' ') %}
-                            {% set record_action_attrs = 'data-url="'+record_url_path+'" data-record-type="'+record.type+'" data-record-data="'+record_data_str+'"' %}
                             <div class="actions">
-                                <button class="edit" {{ record_action_attrs }}>Edit</button>
-                                <button class="delete" {{ record_action_attrs }}>Delete</button>
+                                <button class="edit">Edit</button>
+                                <button class="save" style="display: none;">Save</button>
+                                <button class="cancel" style="display: none;">Cancel</button>
+                                <button class="delete">Delete</button>
                             </div>
                         </td>
                     </tr>

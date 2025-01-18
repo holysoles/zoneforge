@@ -106,7 +106,7 @@ curl -X DELETE 'http://localhost:5000/api/zone/example.com./record/subdomain' \
 | **Web Interface**                       |                    |
 |  Create Zones                          | Complete          |
 |  Delete Zones                          | Planned           |
-|  Edit Records                          | Planned           |
+|  Edit Records                          | Complete          |
 |  Create Records                        | Planned           |
 |  Delete Records                        | Complete          |
 |  Multi-zone Support                    | Complete          |
