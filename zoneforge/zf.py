@@ -164,6 +164,7 @@ def delete_record(
         zone_name: str,
         record_name: str,
         record_type: str,
+        record_data: str,
     ) -> bool:
     zone = get_zones(zone_name)[0]
 

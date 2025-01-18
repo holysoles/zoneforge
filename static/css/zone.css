@@ -25,16 +25,24 @@ tr:hover {
     background-color: #f1f1f1;
 }
 
+.actions-cell {
+    padding: 0 !important;
+}
+
 .actions {
     display: flex;
+    height: 100%;
     gap: 0.5rem;
+    padding: 0.5rem;
 }
 
 .actions button {
+    flex: 1;
     padding: 0.5rem;
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    min-width: 60px; /* Ensures buttons have a minimum width */
 }
 
 .actions button.edit {
