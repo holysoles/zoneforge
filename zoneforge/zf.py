@@ -8,14 +8,16 @@ import dns.rdataset
 import dns.rrset
 import dns.versioned
 import dns.transaction
+from dns.rdatatype import *
 from datetime import datetime
 from os import remove
 from os.path import join, exists, basename
 import glob
+import dns.rrset
 from werkzeug.exceptions import *
 
-# TODO get this declared in app.py, support it as a env var and arg
-ZONE_FILE_FOLDER = './lib/examples'
+ZONE_FILE_FOLDER = './lib/examples' # TODO get this declared in app.py, support it as a env var and arg
+DEFAULT_ZONE_TTL = 86400 # TODO this should be a per-zone setting (see other notes)
 
 ZFZONE_CUSTOM_ATTRS = ['_zone', 'record_count']
 class ZFZone(dns.zone.Zone):
@@ -40,7 +42,7 @@ class ZFZone(dns.zone.Zone):
         repr['name'] = self.origin
         repr['record_count'] = self.record_count
         soa = super().get_rrset(name="@", rdtype="SOA") # could use zone.get_soa(), but we want an rrset for transform_records
-        repr['soa'] = soa
+        repr['soa'] = record_to_response(soa)[0]
         return repr
 
     def write_to_file(self):
@@ -50,7 +52,6 @@ class ZFZone(dns.zone.Zone):
         print(f"INFO: Writing zone {self.origin} to disk") #TODO remove
         zone_file_path = join(ZONE_FILE_FOLDER, f"{self.origin}zone")
         self.to_file(f=zone_file_path, want_comments=True, want_origin=True)
-
 
 def get_zones(zone_name: dns.name.Name = None) -> list[ZFZone]:
     zonefile_map = {}
@@ -113,12 +114,11 @@ def delete_zone(zone_name: dns.name.Name) -> bool:
         return True
     return False
 
-
 def get_records(
         zone_name: str,
         record_name: str = None,
         record_type: str = None,
-    ) -> dns.rrset.RRset:
+    ) -> list[dns.rrset.RRset]:
     zone = get_zones(zone_name)
     if not zone:
         raise NotFound('the specified zone does not exist.')
@@ -146,7 +146,7 @@ def create_record(
         record_data: str,
         zone_name: str = None,
         record_class: dns.rdataclass.RdataClass = "IN",
-        record_ttl: int = 86400,
+        record_ttl: int = None,
         record_comment: str = None,
         write: bool = True,
     ) -> dns.rrset.RRset:
@@ -159,6 +159,8 @@ def create_record(
             raise BadRequest('specified record already exists.')
     tokenizer_data = f" {record_data}; {record_comment}" if record_comment else record_data
     new_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=tokenizer_data)
+    if not record_ttl:
+        record_ttl = DEFAULT_ZONE_TTL
     new_rrset = dns.rrset.from_rdata(record_name, record_ttl, new_rdata)
     if write:
         with zone.writer() as txn:
@@ -182,6 +184,7 @@ def update_record(
     tokenizer_data = _tokenizer_from_params(record_data=record_data, record_comment=record_comment)
     new_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=tokenizer_data)
     new_rrset = dns.rrset.from_rdata(record_name, record_ttl, new_rdata)
+
     # TODO check for planned changes with existing rdata
 
     with zone.writer() as txn:
@@ -209,6 +212,45 @@ def delete_record(
             raise NotFound('specified record does not exist.')
     zone.write_to_file()
     return True
+
+def record_to_response(records: list[dns.rrset.RRset]) -> dict:
+    transformed_records = []
+    if isinstance(records, dns.rrset.RRset):
+        records = [records]
+
+    for rrset in records:
+        print(f"DEBUG: transforming records under name {rrset.name}")
+        for rdata in rrset.items:
+            record_type = rrset.rdtype
+            record = {
+                        "name": str(rrset.name),
+                        "type": record_type._name_,
+                        "ttl": rrset.ttl,
+                        "data": {},
+                    }
+            if getattr(rdata, "rdcomment"):
+                record["comment"] = rdata.rdcomment
+            if record_type == SOA:
+                record["data"]["serial"] = rdata.serial
+                record["data"]["refresh"] = rdata.refresh
+                record["data"]["retry"] = rdata.retry
+                record["data"]["expire"] = rdata.expire
+                record["data"]["minimum"] = rdata.minimum
+            elif record_type == MX:
+                record["data"]["exchange"] = rdata.exchange.to_text()
+            elif record_type == NS:
+                record["data"]["target"] = rdata.target.to_text()
+            elif record_type == CNAME:
+                record["data"]["target"] = rdata.target.to_text()
+            elif record_type == A:
+                record["data"]["address"] = rdata.address
+            elif record_type == TXT:
+                record["data"]["data"] = rdata.to_text()
+            else:
+                print(f"ERROR: DNS Record Type f{dns.rrset.rdtype} not supported.")
+                    
+            transformed_records.append(record)
+    return transformed_records
 
 def _tokenizer_from_params(record_data: str = None, record_comment: str = None):
     tokenizer_data = ''

@@ -104,6 +104,7 @@ async function saveChanges(row) {
     try {
         const requestBody = Object.fromEntries([
             ['type', row.querySelector('[data-field="type"] input')?.value.trim()],
+            ['ttl', row.querySelector('[data-field="ttl"] input')?.value.trim()],
             ['data', getRecordDataFromCell(row.querySelector('[data-field="data"]'))],
             ['comment', row.querySelector('[data-field="comment"] input')?.value.trim()]
         ].filter(([_, value]) => value));
@@ -145,6 +146,7 @@ async function createRecord(row) {
         const requestBody = Object.fromEntries(
             [
                 ['type', row.querySelector('[data-field="type"] input')?.value.trim()],
+                ['ttl', row.querySelector('[data-field="ttl"] input')?.value.trim()],
                 ['data', getRecordDataFromCell(row.querySelector('[data-field="data"]'))],
                 ['comment', row.querySelector('[data-field="comment"] input')?.value.trim()]
             ].filter(([_, value]) => value)
