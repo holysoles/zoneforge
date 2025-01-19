@@ -11,7 +11,7 @@ function setButtonsDisplay(row, isEditing) {
 }
 
 // Data extraction helper
-function getRecordDataFromCell(dataCell) {
+function getRecordDataFromCell(dataCell) {//TODO this isnt handling multiline record data
     const input = dataCell.querySelector('input');
     if (input) {
         return input.value.split(':')[1]?.trim() || input.value.trim();

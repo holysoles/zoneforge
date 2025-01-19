@@ -17,7 +17,42 @@ from werkzeug.exceptions import *
 # TODO get this declared in app.py, support it as a env var and arg
 ZONE_FILE_FOLDER = './lib/examples'
 
-def get_zones(zone_name: dns.name.Name = None) -> list[dns.zone.Zone]:
+ZFZONE_CUSTOM_ATTRS = ['_zone', 'record_count']
+class ZFZone(dns.zone.Zone):
+    """
+    Extends the dnspython library's Zone class to provide additional handling
+    """
+    def __init__(self, zone: dns.zone.Zone):
+        self._zone = zone  # Store the original zone instance
+        self.record_count = len(zone.nodes)
+
+    def __getattr__(self, name):
+        return getattr(self._zone, name)
+
+    def __setattr__(self, name, value):
+        if name in ZFZONE_CUSTOM_ATTRS:
+            super().__setattr__(name, value)
+        else:
+            setattr(self._zone, name, value)
+    
+    def to_response(self):
+        repr = {}
+        repr['name'] = self.origin
+        repr['record_count'] = self.record_count
+        soa = super().get_rrset(name="@", rdtype="SOA") # could use zone.get_soa(), but we want an rrset for transform_records
+        repr['soa'] = soa
+        return repr
+
+    def write_to_file(self):
+        update_timestamp = int(datetime.now().strftime("%Y%m%d"))
+        with self.writer() as txn:
+            txn.update_serial(value=update_timestamp, relative=False)
+        print(f"INFO: Writing zone {self.origin} to disk") #TODO remove
+        zone_file_path = join(ZONE_FILE_FOLDER, f"{self.origin}zone")
+        self.to_file(f=zone_file_path, want_comments=True, want_origin=True)
+
+
+def get_zones(zone_name: dns.name.Name = None) -> list[ZFZone]:
     zonefile_map = {}
     zones = []
     if zone_name:
@@ -41,8 +76,9 @@ def get_zones(zone_name: dns.name.Name = None) -> list[dns.zone.Zone]:
                 f=zone_file_path,
                 origin=zone_name,
                 zone_factory=dns.versioned.Zone
-                )
-            zones.append(zone)
+            )
+            zfzone = ZFZone(zone)
+            zones.append(zfzone)
         except Exception as e:
             print (f"ERROR: exception loading zone file '{zone_file_path}' ", e.__class__, e)
             raise InternalServerError
@@ -53,7 +89,7 @@ def create_zone(
         soa_rrset: dns.rrset.RRset,
         ns_rrset: dns.rrset.RRset,
         ns_a_rrset: dns.rrset.RRset = None
-    ) -> dns.zone.Zone:
+    ) -> ZFZone:
     zone_file_path = join(ZONE_FILE_FOLDER, f"{zone_name}zone")
     if exists(zone_file_path):
         raise Forbidden('A zone with that name already exists.')
@@ -61,13 +97,14 @@ def create_zone(
         new_zone = dns.zone.Zone(
             origin=zone_name,
         )
-        with new_zone.writer() as txn:
+        new_zfzone = ZFZone(new_zone)
+        with new_zfzone.writer() as txn:
             txn.add(soa_rrset)
             txn.add(ns_rrset)
             if ns_a_rrset:
                 txn.add(ns_a_rrset)
-        _write_zone(new_zone)
-        return new_zone
+        new_zfzone.write_to_file()
+        return new_zfzone
 
 def delete_zone(zone_name: dns.name.Name) -> bool:
     zone_file_name = join(ZONE_FILE_FOLDER, f"{zone_name}zone")
@@ -75,16 +112,6 @@ def delete_zone(zone_name: dns.name.Name) -> bool:
         remove(zone_file_name)
         return True
     return False
-
-def _write_zone(zone: dns.zone.Zone):
-    update_timestamp = int(datetime.now().strftime("%Y%m%d"))
-    with zone.writer() as txn:
-        txn.update_serial(value=update_timestamp, relative=False)
-    print(f"INFO: Writing zone {zone.origin} to disk")
-    zone_file_path = join(ZONE_FILE_FOLDER, f"{zone.origin}zone")
-    zone.to_file(f=zone_file_path, want_comments=True, want_origin=True)
-
-
 
 
 def get_records(
@@ -137,7 +164,7 @@ def create_record(
         with zone.writer() as txn:
             txn.add(new_rrset)
         print(f"INFO: Created record {record_name} in zone {zone_name} with data '{record_data}'")
-        _write_zone(zone)
+        zone.write_to_file()
     return new_rrset
 
 def update_record(
@@ -160,7 +187,7 @@ def update_record(
     with zone.writer() as txn:
         txn.replace(new_rrset)
     print(f"INFO: Updated record {record_name} in zone {zone_name} with data '{record_data}'")
-    _write_zone(zone)
+    zone.write_to_file()
     return new_rrset
 
 def delete_record(
@@ -180,7 +207,7 @@ def delete_record(
             print(f"INFO: Deleted record {record_name} in zone {zone_name}")
         except dns.transaction.DeleteNotExact as e:
             raise NotFound('specified record does not exist.')
-    _write_zone(zone)
+    zone.write_to_file()
     return True
 
 def _tokenizer_from_params(record_data: str = None, record_comment: str = None):
