@@ -69,3 +69,17 @@ td:nth-child(6) { min-width: 150px; }
     min-height: 36px;
     box-sizing: border-box;
 }
+
+/* New record row */
+.new-record td {
+    background-color: #f8f8f8;
+}
+
+.actions button.create { 
+    background-color: #2196F3; 
+}
+
+.new-record input::placeholder {
+    color: #999;
+    font-style: italic;
+}
