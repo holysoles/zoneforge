@@ -113,7 +113,6 @@ def get_records(
 
         return list(all_records)
 
-# TODO probably need to handle @/origin in thesemethods .. TBD
 def create_record(
         record_name: str,
         record_type: str,
@@ -174,7 +173,7 @@ def delete_record(
 
     with zone.writer() as txn:
         try:
-            txn.delete_exact(record_name, record_type) #TODO delete properly
+            txn.delete_exact(record_name, record_type)
             print(f"INFO: Deleted record {record_name} in zone {zone_name}")
         except dns.transaction.DeleteNotExact as e:
             raise NotFound('specified record does not exist.')

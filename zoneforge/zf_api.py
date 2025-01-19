@@ -16,6 +16,7 @@ zone_parser.add_argument('name', type=str, help='Name of the DNS Zone', required
 record_parser = reqparse.RequestParser()
 record_parser.add_argument('browser', type=bool, help='Track if requests are coming from the web application', required=False) 
 record_parser.add_argument('name', type=str, help='Name of the DNS record', required=False)
+record_parser.add_argument('ttl', type=str, help='TTL of the DNS record', required=False)
 record_parser.add_argument('type', type=str, help='Type of DNS Record', required=False)
 record_parser.add_argument('data', type=str, help='RData of the DNS Record', required=False)
 
@@ -100,7 +101,6 @@ class ZoneResource(Resource):
             raise NotFound('A zone with that name does not exist.')
 
 
-# TODO accept record_ttl as query parameter for all methods
 class RecordResource(Resource):
     def get(self, zone_name: str, record_name: str = None):
         args = record_parser.parse_args()
@@ -123,7 +123,10 @@ class RecordResource(Resource):
         args = parser.parse_args()
         if not record_name:
             record_name = args.get("name")
-        new_record = create_record(zone_name=zone_name, record_name=record_name, record_type=args['type'], record_data=args['data'], record_comment=args['comment'])
+            if not record_name:
+                raise BadRequest("A record name must be specified with either a URL path of '/zone/[zone_name]/record[record_name]' or with the 'name' parameter")
+        record_ttl = args.get('record_ttl')
+        new_record = create_record(zone_name=zone_name, record_name=record_name, record_type=args['type'], record_ttl=record_ttl, record_data=args['data'], record_comment=args['comment'])
         new_record_response = transform_records(new_record)[0]
         return new_record_response
     
@@ -135,7 +138,10 @@ class RecordResource(Resource):
         args = parser.parse_args()
         if not record_name:
             record_name = args.get("name")
-        updated_record = update_record(zone_name=zone_name, record_name=record_name, record_type=args['type'], record_data=args['data'], record_comment=args['comment'])
+            if not record_name:
+                raise BadRequest("A record name must be specified with either a URL path of '/zone/[zone_name]/record[record_name]' or with the 'name' parameter")
+        record_ttl = args.get('record_ttl')
+        updated_record = update_record(zone_name=zone_name, record_name=record_name, record_type=args['type'], record_ttl=record_ttl, record_data=args['data'], record_comment=args['comment'])
         updated_record_response = transform_records(updated_record)[0]
         return updated_record_response
     
@@ -146,6 +152,8 @@ class RecordResource(Resource):
         args = parser.parse_args()
         if not record_name:
             record_name = args.get("name")
+            if not record_name:
+                raise BadRequest("A record name must be specified with either a URL path of '/zone/[zone_name]/record[record_name]' or with the 'name' parameter")
         delete_record(zone_name=zone_name, record_name=record_name, record_type=args['type'], record_data=args['data'])
         return {}
 
