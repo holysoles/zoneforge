@@ -1,11 +1,6 @@
-from flask import redirect, url_for, request
+from flask import redirect, url_for
 from flask_restx import Resource, reqparse
-from dns.zone import Zone
-from dns.name import Name
-from dns.rdataclass import *
-from dns.rdatatype import *
-from dns.rrset import *
-from zoneforge.zf import get_zones, create_zone, delete_zone, get_records, create_record, update_record, delete_record
+from zoneforge.zf import get_zones, create_zone, delete_zone, get_records, create_record, update_record, delete_record, record_to_response
 from werkzeug.exceptions import *
 
 # TODO for parsers: make a list of valid values
@@ -100,7 +95,6 @@ class ZoneResource(Resource):
         else:
             raise NotFound('A zone with that name does not exist.')
 
-
 class RecordResource(Resource):
     def get(self, zone_name: str, record_name: str = None):
         args = record_parser.parse_args()
@@ -109,11 +103,13 @@ class RecordResource(Resource):
 
         record_type = args.get('type')
         records = get_records(zone_name=zone_name, record_name=record_name, record_type=record_type)
-        return_records = transform_records(records)
+        records_response = record_to_response(records=records)
 
-        if record_name and not return_records:
+        if record_name and not records:
             raise NotFound
-        return return_records
+        if record_name:
+            records_response = records_response[0]
+        return records_response
     
     def post(self, zone_name: str, record_name: str = None):
         parser = record_parser.copy()
@@ -125,9 +121,9 @@ class RecordResource(Resource):
             record_name = args.get("name")
             if not record_name:
                 raise BadRequest("A record name must be specified with either a URL path of '/zone/[zone_name]/record[record_name]' or with the 'name' parameter")
-        record_ttl = args.get('record_ttl')
+        record_ttl = args.get('ttl')
         new_record = create_record(zone_name=zone_name, record_name=record_name, record_type=args['type'], record_ttl=record_ttl, record_data=args['data'], record_comment=args['comment'])
-        new_record_response = transform_records(new_record)[0]
+        new_record_response = record_to_response(new_record)[0]
         return new_record_response
     
     def put(self, zone_name: str, record_name: str = None):
@@ -140,9 +136,9 @@ class RecordResource(Resource):
             record_name = args.get("name")
             if not record_name:
                 raise BadRequest("A record name must be specified with either a URL path of '/zone/[zone_name]/record[record_name]' or with the 'name' parameter")
-        record_ttl = args.get('record_ttl')
+        record_ttl = args.get('ttl')
         updated_record = update_record(zone_name=zone_name, record_name=record_name, record_type=args['type'], record_ttl=record_ttl, record_data=args['data'], record_comment=args['comment'])
-        updated_record_response = transform_records(updated_record)[0]
+        updated_record_response = record_to_response(updated_record)[0]
         return updated_record_response
     
     def delete(self, zone_name, record_name):
@@ -156,44 +152,3 @@ class RecordResource(Resource):
                 raise BadRequest("A record name must be specified with either a URL path of '/zone/[zone_name]/record[record_name]' or with the 'name' parameter")
         delete_record(zone_name=zone_name, record_name=record_name, record_type=args['type'], record_data=args['data'])
         return {}
-
-
-# TODO move into zf.py, reduce reliance on dnspython lib in here
-def transform_records(records: list[RRset]) -> dict:
-    transformed_records = []
-    if isinstance(records, RRset):
-        records = [records]
-
-    for rrset in records:
-        print(f"DEBUG: transforming records under name {rrset.name}")
-        for rdata in rrset.items:
-            record_type = rrset.rdtype
-            record = {
-                        "name": str(rrset.name),
-                        "type": record_type._name_,
-                        "ttl": rrset.ttl,
-                        "data": {},
-                    }
-            if getattr(rdata, "rdcomment"):
-                record["comment"] = rdata.rdcomment
-            if record_type == SOA:
-                record["data"]["serial"] = rdata.serial
-                record["data"]["refresh"] = rdata.refresh
-                record["data"]["retry"] = rdata.retry
-                record["data"]["expire"] = rdata.expire
-                record["data"]["minimum"] = rdata.minimum
-            elif record_type == MX:
-                record["data"]["exchange"] = rdata.exchange.to_text()
-            elif record_type == NS:
-                record["data"]["target"] = rdata.target.to_text()
-            elif record_type == CNAME:
-                record["data"]["target"] = rdata.target.to_text()
-            elif record_type == A:
-                record["data"]["address"] = rdata.address
-            elif record_type == TXT:
-                record["data"]["data"] = rdata.to_text()
-            else:
-                print(f"ERROR: DNS Record Type f{rrset.rdtype} not supported.")
-                    
-            transformed_records.append(record)
-    return transformed_records
