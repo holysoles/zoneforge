@@ -131,7 +131,7 @@ def create_record(
         zone = get_zones(zone_name)[0]
         if zone.get_rdataset(name=record_name, rdtype=record_type):
             raise BadRequest('specified record already exists.')
-    tokenizer_data = f" {record_data}; {record_comment}"
+    tokenizer_data = f" {record_data}; {record_comment}" if record_comment else record_data
     new_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=tokenizer_data, ) # TODO add origin, but needs to be DNS name obj
     new_rrset = dns.rrset.from_rdata(record_name, record_ttl, new_rdata)
     if write:
@@ -153,7 +153,7 @@ def update_record(
     zone = get_zones(zone_name)[0]
     if not zone.get_rdataset(name=record_name, rdtype=record_type):
         raise NotFound('specified record does not exist.')
-    tokenizer_data = f" {record_data}; {record_comment}"
+    tokenizer_data = f" {record_data}; {record_comment}" if record_comment else record_data
     new_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=tokenizer_data, ) # TODO add origin, but needs to be DNS name obj
     new_rrset = dns.rrset.from_rdata(record_name, record_ttl, new_rdata)
     # TODO check for planned changes with existing rdata
@@ -174,7 +174,7 @@ def delete_record(
 
     with zone.writer() as txn:
         try:
-            txn.delete_exact(record_name, record_type)
+            txn.delete_exact(record_name, record_type) #TODO delete properly
             print(f"INFO: Deleted record {record_name} in zone {zone_name}")
         except dns.transaction.DeleteNotExact as e:
             raise NotFound('specified record does not exist.')
