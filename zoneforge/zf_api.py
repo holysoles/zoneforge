@@ -11,12 +11,13 @@ from werkzeug.exceptions import *
 # TODO for parsers: make a list of valid values
 zone_parser = reqparse.RequestParser()
 zone_parser.add_argument('browser', type=bool, help='Track if requests are coming from the web application', required=False) 
-zone_parser.add_argument('zone_name', type=str, help='Type of DNS Record', required=False) 
+zone_parser.add_argument('name', type=str, help='Name of the DNS Zone', required=False) 
 
 record_parser = reqparse.RequestParser()
-zone_parser.add_argument('browser', type=bool, help='Track if requests are coming from the web application', required=False) 
-record_parser.add_argument('record_type', type=str, help='Type of DNS Record', required=False)
-record_parser.add_argument('record_data', type=str, help='RData for the DNS Record', required=False)
+record_parser.add_argument('browser', type=bool, help='Track if requests are coming from the web application', required=False) 
+record_parser.add_argument('name', type=str, help='Name of the DNS record', required=False)
+record_parser.add_argument('type', type=str, help='Type of DNS Record', required=False)
+record_parser.add_argument('data', type=str, help='RData of the DNS Record', required=False)
 
 class StatusResource(Resource):
     def get(self):
@@ -25,9 +26,15 @@ class StatusResource(Resource):
 class ZoneResource(Resource):
     def get(self, zone_name: str = None):
         zones_response = []
+        if not zone_name:
+            args = zone_parser.parse_args()
+            zone_name = args.get("name")
+
         if zone_name:
-            zone_name = dns.name.from_text(zone_name)
-        zones = get_zones(zone_name)
+            dns_name = dns.name.from_text(zone_name)
+        else:
+            dns_name = None
+        zones = get_zones(dns_name)
         if not zones:
             raise NotFound('A zone with that name does not exist.')
         else:
@@ -36,7 +43,7 @@ class ZoneResource(Resource):
                 zones_response.append(transform_zone(zone))
         
         if zone_name:
-            zones_response = zones_response[0] # return single element when zone_name was specified
+            zones_response = zones_response[0] # return single element when name was specified
         return zones_response
     
     def post(self, zone_name: str = None):
@@ -54,12 +61,12 @@ class ZoneResource(Resource):
         args = parser.parse_args()
 
         if not zone_name:
-            zone_name = args.get("zone_name")
+            zone_name = args.get("name")
             if not zone_name:
-                raise BadRequest("A zone name must be specified with either '/zone/[zone_name]' or with the 'zone_request' parameter")
-        zone_name = dns.name.from_text(zone_name)
+                raise BadRequest("A zone name must be specified with either a URL path of '/zone/[zone_name]' or with the 'name' parameter")
+        dns_name = dns.name.from_text(zone_name)
             
-        zones = get_zones(zone_name)
+        zones = get_zones(dns_name)
         if len(zones) != 0:        
             raise BadRequest('A zone with that name already exists.')
         
@@ -72,7 +79,7 @@ class ZoneResource(Resource):
         make_primary_ns_a_record = args.get('primary_ns_ip') and args.get('primary_ns_a_ttl')
         primary_ns_a_rrset = create_record(record_name=f"{primary_ns}", record_type='A', record_data=f"{args['primary_ns_ip']}", record_ttl=args['primary_ns_a_ttl'], write=False) if make_primary_ns_a_record else None
 
-        new_zone = create_zone(zone_name, soa_rrset, primary_ns_rrset, primary_ns_a_rrset)
+        new_zone = create_zone(dns_name, soa_rrset, primary_ns_rrset, primary_ns_a_rrset)
         new_zone_response = transform_zone(new_zone)
 
         if args.get('browser'):
@@ -82,22 +89,25 @@ class ZoneResource(Resource):
     def delete(self, zone_name: str = None):
         args = zone_parser.parse_args()
         if not zone_name:
-            zone_name = args.get("zone_name")
+            zone_name = args.get("name")
             if not zone_name:
-                raise BadRequest("A zone name must be specified with either '/zone/[zone_name]' or with the 'zone_request' parameter")
-        zone_name = dns.name.from_text(zone_name)
+                raise BadRequest("A zone name must be specified with either a URL path of '/zone/[zone_name]' or with the 'name' parameter")
+        dns_name = dns.name.from_text(zone_name)
 
-        if delete_zone(zone_name):
+        if delete_zone(dns_name):
             return {}
         else:
             raise NotFound('A zone with that name does not exist.')
-        
 
 
+# TODO accept record_ttl as query parameter for all methods
 class RecordResource(Resource):
-    def get(self, zone_name, record_name=None):
+    def get(self, zone_name: str, record_name: str = None):
         args = record_parser.parse_args()
-        record_type = args.get('record_type')
+        if not record_name:
+            record_name = args.get("name")
+
+        record_type = args.get('type')
         records = get_records(zone_name=zone_name, record_name=record_name, record_type=record_type)
         return_records = transform_records(records)
 
@@ -105,25 +115,27 @@ class RecordResource(Resource):
             raise NotFound
         return return_records
     
-    # TODO accept record_ttl as query parameter
-    
-    def post(self, zone_name, record_name):
+    def post(self, zone_name: str, record_name: str = None):
         parser = record_parser.copy()
-        parser.replace_argument('record_type', type=str, help='Type of DNS Record', required=True)
-        parser.add_argument('record_data', type=str, help='RData for the DNS Record', required=True)
-        parser.add_argument('record_comment', type=str, help='Comment for the DNS Record', required=False)
+        parser.replace_argument('type', type=str, help='Type of DNS Record', required=True)
+        parser.add_argument('data', type=str, help='RData for the DNS Record', required=True)
+        parser.add_argument('comment', type=str, help='Comment for the DNS Record', required=False)
         args = parser.parse_args()
-        new_record = create_record(zone_name=zone_name, record_name=record_name, record_type=args['record_type'], record_data=args['record_data'], record_comment=args['record_comment'])
+        if not record_name:
+            record_name = args.get("name")
+        new_record = create_record(zone_name=zone_name, record_name=record_name, record_type=args['type'], record_data=args['data'], record_comment=args['comment'])
         new_record_response = transform_records(new_record)[0]
         return new_record_response
     
-    def put(self, zone_name, record_name):
+    def put(self, zone_name: str, record_name: str = None):
         parser = record_parser.copy()
-        parser.replace_argument('record_type', type=str, help='Type of DNS Record', required=True)
-        parser.add_argument('record_data', type=str, help='RData for the DNS Record', required=True)
-        parser.add_argument('record_comment', type=str, help='Comment for the DNS Record', required=False)
+        parser.replace_argument('type', type=str, help='Type of DNS Record', required=True)
+        parser.add_argument('data', type=str, help='RData for the DNS Record', required=True)
+        parser.add_argument('comment', type=str, help='Comment for the DNS Record', required=False)
         args = parser.parse_args()
-        updated_record = update_record(zone_name=zone_name, record_name=record_name, record_type=args['record_type'], record_data=args['record_data'], record_comment=args['record_comment'])
+        if not record_name:
+            record_name = args.get("name")
+        updated_record = update_record(zone_name=zone_name, record_name=record_name, record_type=args['type'], record_data=args['data'], record_comment=args['comment'])
         updated_record_response = transform_records(updated_record)[0]
         return updated_record_response
     
@@ -132,8 +144,11 @@ class RecordResource(Resource):
         parser.replace_argument('record_type', type=str, help='Type of DNS Record', required=True)
         parser.add_argument('record_data', type=str, help='RData of the DNS Record', required=True)
         args = parser.parse_args()
-        delete_record(zone_name=zone_name, record_name=record_name, record_type=args['record_type'], record_data=args['record_data'])
+        if not record_name:
+            record_name = args.get("name")
+        delete_record(zone_name=zone_name, record_name=record_name, record_type=args['type'], record_data=args['data'])
         return {}
+
 
 def transform_zone(zone: Zone) -> dict:
     return {
@@ -141,7 +156,6 @@ def transform_zone(zone: Zone) -> dict:
         "record_count": len(zone.nodes),
     }
     
-
 def transform_records(records: list[RRset]) -> dict:
     transformed_records = []
     if isinstance(records, RRset):
