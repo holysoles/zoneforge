@@ -1,7 +1,11 @@
 // Button display helper
 function setButtonsDisplay(row, isEditing) {
-    row.querySelector('.edit').style.display = isEditing ? 'none' : 'block';
-    row.querySelector('.delete').style.display = isEditing ? 'none' : 'block';
+    if (row.classList.contains('new-record')) {
+        row.querySelector('.create').style.display = isEditing ? 'none' : 'block';
+    } else {
+        row.querySelector('.edit').style.display = isEditing ? 'none' : 'block';
+        row.querySelector('.delete').style.display = isEditing ? 'none' : 'block';
+    }
     row.querySelector('.save').style.display = isEditing ? 'block' : 'none';
     row.querySelector('.cancel').style.display = isEditing ? 'block' : 'none';
 }
@@ -30,6 +34,8 @@ document.querySelectorAll('.actions button').forEach(button => {
             cancelEditing(row);
         } else if (button.classList.contains('delete')) {
             await deleteRecord(row);
+        } else if (button.classList.contains('create')) {
+            await createRecord(row);
         }
     });
 });
@@ -72,36 +78,46 @@ async function deleteRecord(row) {
     }
 
     try {
+        const requestBody = Object.fromEntries([
+            ['record_type', row.querySelector('[data-field="type"]').textContent.trim()],
+            ['record_data', getRecordDataFromCell(row.querySelector('[data-field="data"]'))]
+        ].filter(([_, value]) => value));
+
         const response = await fetch(row.getAttribute('data-url'), {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                record_type: row.querySelector('[data-field="type"]').textContent.trim(),
-                record_data: getRecordDataFromCell(row.querySelector('[data-field="data"]'))
-            })
+            body: JSON.stringify(requestBody)
         });
 
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || `HTTP error! status: ${response.status}`);
+        }
         row.remove();
     } catch (error) {
         console.error('Error:', error);
-        alert('Failed to delete record. Please try again.');
+        alert(`Failed to delete record: ${error.message}`);
     }
 }
 
 async function saveChanges(row) {
     try {
+        const requestBody = Object.fromEntries([
+            ['record_type', row.querySelector('[data-field="type"] input')?.value.trim()],
+            ['record_data', getRecordDataFromCell(row.querySelector('[data-field="data"]'))],
+            ['record_comment', row.querySelector('[data-field="comment"] input')?.value.trim()]
+        ].filter(([_, value]) => value));
+
         const response = await fetch(row.getAttribute('data-url'), {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                record_type: row.querySelector('[data-field="type"] input').value,
-                record_data: getRecordDataFromCell(row.querySelector('[data-field="data"]')),
-                record_comment: row.querySelector('[data-field="comment"] input')?.value || ''
-            })
+            body: JSON.stringify(requestBody)
         });
 
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || `HTTP error! status: ${response.status}`);
+        }
 
         row.querySelectorAll('.editable').forEach(cell => {
             cell.textContent = cell.querySelector('input').value;
@@ -109,7 +125,46 @@ async function saveChanges(row) {
         setButtonsDisplay(row, false);
     } catch (error) {
         console.error('Error:', error);
-        alert('Failed to save changes. Please try again.');
+        alert(`Failed to save changes: ${error.message}`);
         cancelEditing(row);
+    }
+}
+
+async function createRecord(row) {
+    try {
+        const nameInput = row.querySelector('[data-field="name"] input');
+        const recordName = nameInput.value.trim();
+        
+        if (!recordName) {
+            alert('Record name is required');
+            return;
+        }
+
+        const url = row.getAttribute('data-url').replace('_new', recordName);
+        
+        const requestBody = Object.fromEntries(
+            [
+                ['record_type', row.querySelector('[data-field="type"] input')?.value.trim()],
+                ['record_data', getRecordDataFromCell(row.querySelector('[data-field="data"]'))],
+                ['record_comment', row.querySelector('[data-field="comment"] input')?.value.trim()]
+            ].filter(([_, value]) => value)
+        );
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || `HTTP error! status: ${response.status}`);
+        }
+        
+        row.querySelectorAll('input').forEach(input => input.value = '');
+        window.location.reload();
+    } catch (error) {
+        console.error('Error:', error);
+        alert(`Failed to create record: ${error.message}`);
     }
 }

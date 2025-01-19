@@ -48,6 +48,31 @@
                         </td>
                     </tr>
                     {% endfor %}
+                    <!-- New Record Row -->
+                    {% set new_record_url = url_for("record_resource", **{"record_name": "_new", "zone_name": zone}) %}
+                    <tr class="new-record" data-url="{{ new_record_url }}">
+                        <td><input type="checkbox" disabled></td>
+                        <td class="editable" data-field="name">
+                            <input type="text" placeholder="name">
+                        </td>
+                        <td class="editable" data-field="type">
+                            <input type="text" placeholder="type">
+                        </td>
+                        <td class="editable" data-field="ttl">
+                            <input type="text" placeholder="ttl">
+                        </td>
+                        <td class="editable" data-field="data">
+                            <input type="text" placeholder="data">
+                        </td>
+                        <td class="editable" data-field="comment">
+                            <input type="text" placeholder="comment">
+                        </td>
+                        <td class="actions-cell">
+                            <div class="actions">
+                                <button class="create">Create</button>
+                            </div>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
