@@ -31,14 +31,27 @@ ZoneForge simplifies the *management* of RFC1035/BIND-style DNS zone files by pr
 ### Create
 
 ```shell
-curl -X POST 'http://localhost:5000/api/zone/test.example.com.'
+curl -X POST 'http://localhost:5000/api/zone/example.com.' \
+--header 'Content-Type: application/json' \
+--data '{
+    "soa_ttl": "3600",
+    "admin_email": "admin@example.com",
+    "refresh": "7200",
+    "retry": "3600",
+    "expire": "1209600",
+    "minimum": "3600",
+    "primary_ns": "ns1.example.com",
+    "primary_ns_ttl": "3600",
+    "primary_ns_ip": "192.0.2.1",
+    "primary_ns_a_ttl": "3600"
+}'
 ```
 
 ### Read
 
 #### Get all zones
 ```shell
-curl -X GET 'http://localhost:5000/api/v1/zone'
+curl -X GET 'http://localhost:5000/api/zone'
 ```
 
 #### Get specific zone
@@ -49,37 +62,36 @@ curl -X GET 'http://localhost:5000/api/zone/example.com.'
 ### Delete
 
 ```shell
-curl -X DELETE 'http://localhost:5000/api/zone/test.example.com.'
+curl -X DELETE 'http://localhost:5000/api/zone/example.com.'
 ```
 
 ## Records
 
 - Limited support for record types (A, CNAME, SOA, MX, NS, TXT).
+- EOL comments are supported in the `record_comment` parameter when creating/updating records, and returned in the `comments` key of returned records.
 
-- EOL comments are supported in the `comments` key of returned records.
-
-
-#### Create
+### Create
 
 ```shell
 curl -X POST 'http://localhost:5000/api/zone/example.com./record/subdomain' \
 --header 'Content-Type: application/json' \
 --data '{
     "record_type": "CNAME",
-    "record_data": "ns100.example.com"
+    "record_data": "ns100.example.com",
+    "record_comment": "Optional comment"
 }'
 ```
 
-#### Read
+### Read
 
 ```shell
 curl -X GET 'http://localhost:5000/api/zone/example.com./record/subdomain'
 ```
 
-#### Update
+### Update
 
 ```shell
-curl -X POST 'http://localhost:5000/api/zone/example.com./record/subdomain' \
+curl -X PUT 'http://localhost:5000/api/zone/example.com./record/subdomain' \
 --header 'Content-Type: application/json' \
 --data '{
     "record_type": "CNAME",
@@ -87,13 +99,14 @@ curl -X POST 'http://localhost:5000/api/zone/example.com./record/subdomain' \
 }'
 ```
 
-#### Delete
+### Delete
 
 ```shell
 curl -X DELETE 'http://localhost:5000/api/zone/example.com./record/subdomain' \
 --header 'Content-Type: application/json' \
 --data '{
-    "record_type": "CNAME"
+    "record_type": "CNAME",
+    "record_data": "subdomain2.example.com"
 }'
 ```
 
@@ -107,9 +120,10 @@ curl -X DELETE 'http://localhost:5000/api/zone/example.com./record/subdomain' \
 |  Create Zones                          | Complete          |
 |  Delete Zones                          | Planned           |
 |  Edit Records                          | Complete          |
-|  Create Records                        | Planned           |
+|  Create Records                        | Complete          |
 |  Delete Records                        | Complete          |
 |  Multi-zone Support                    | Complete          |
+|  Client side validation                | Planned           |
 | **REST API**                            |                    |
 |  CRUD for DNS Zones                    | Complete          |
 |  CRUD for DNS Records                  | Complete          |

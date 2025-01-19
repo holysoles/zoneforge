@@ -130,7 +130,7 @@ class RecordResource(Resource):
     def delete(self, zone_name, record_name):
         parser = record_parser.copy()
         parser.replace_argument('record_type', type=str, help='Type of DNS Record', required=True)
-        parser.add_argument('record_data', type=str, help='RData for the DNS Record', required=True)
+        parser.add_argument('record_data', type=str, help='RData of the DNS Record', required=True)
         args = parser.parse_args()
         delete_record(zone_name=zone_name, record_name=record_name, record_type=args['record_type'], record_data=args['record_data'])
         return {}
