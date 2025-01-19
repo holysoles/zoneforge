@@ -41,7 +41,7 @@ class ZoneResource(Resource):
         else:
             for zone in zones:
                 print(f"DEBUG: transforming zone ${zone}")
-                zones_response.append(transform_zone(zone))
+                zones_response.append(zone.to_response())
         
         if zone_name:
             zones_response = zones_response[0] # return single element when name was specified
@@ -81,7 +81,7 @@ class ZoneResource(Resource):
         primary_ns_a_rrset = create_record(record_name=f"{primary_ns}", record_type='A', record_data=f"{args['primary_ns_ip']}", record_ttl=args['primary_ns_a_ttl'], write=False) if make_primary_ns_a_record else None
 
         new_zone = create_zone(dns_name, soa_rrset, primary_ns_rrset, primary_ns_a_rrset)
-        new_zone_response = transform_zone(new_zone)
+        new_zone_response = new_zone.to_response()
 
         if args.get('browser'):
             return redirect(url_for('home'))
@@ -158,12 +158,7 @@ class RecordResource(Resource):
         return {}
 
 
-def transform_zone(zone: Zone) -> dict:
-    return {
-        "origin": str(zone.origin),
-        "record_count": len(zone.nodes),
-    }
-    
+# TODO move into zf.py, reduce reliance on dnspython lib in here
 def transform_records(records: list[RRset]) -> dict:
     transformed_records = []
     if isinstance(records, RRset):
