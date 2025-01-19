@@ -147,8 +147,8 @@ class RecordResource(Resource):
     
     def delete(self, zone_name, record_name):
         parser = record_parser.copy()
-        parser.replace_argument('record_type', type=str, help='Type of DNS Record', required=True)
-        parser.add_argument('record_data', type=str, help='RData of the DNS Record', required=True)
+        parser.replace_argument('type', type=str, help='Type of DNS Record', required=True)
+        parser.replace_argument('data', type=str, help='RData of the DNS Record', required=True)
         args = parser.parse_args()
         if not record_name:
             record_name = args.get("name")
@@ -190,9 +190,9 @@ def transform_records(records: list[RRset]) -> dict:
             elif record_type == MX:
                 record["data"]["exchange"] = rdata.exchange.to_text()
             elif record_type == NS:
-                record["data"]["target"] = rdata.target.to_text()  #TODO need to convert @s to origin name
+                record["data"]["target"] = rdata.target.to_text()
             elif record_type == CNAME:
-                record["data"]["target"] = rdata.target.to_text() #TODO need to convert @s to origin name
+                record["data"]["target"] = rdata.target.to_text()
             elif record_type == A:
                 record["data"]["address"] = rdata.address
             elif record_type == TXT:

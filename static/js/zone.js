@@ -79,8 +79,8 @@ async function deleteRecord(row) {
 
     try {
         const requestBody = Object.fromEntries([
-            ['record_type', row.querySelector('[data-field="type"]').textContent.trim()],
-            ['record_data', getRecordDataFromCell(row.querySelector('[data-field="data"]'))]
+            ['type', row.querySelector('[data-field="type"]').textContent.trim()],
+            ['data', getRecordDataFromCell(row.querySelector('[data-field="data"]'))]
         ].filter(([_, value]) => value));
 
         const response = await fetch(row.getAttribute('data-url'), {
@@ -103,9 +103,9 @@ async function deleteRecord(row) {
 async function saveChanges(row) {
     try {
         const requestBody = Object.fromEntries([
-            ['record_type', row.querySelector('[data-field="type"] input')?.value.trim()],
-            ['record_data', getRecordDataFromCell(row.querySelector('[data-field="data"]'))],
-            ['record_comment', row.querySelector('[data-field="comment"] input')?.value.trim()]
+            ['type', row.querySelector('[data-field="type"] input')?.value.trim()],
+            ['data', getRecordDataFromCell(row.querySelector('[data-field="data"]'))],
+            ['comment', row.querySelector('[data-field="comment"] input')?.value.trim()]
         ].filter(([_, value]) => value));
 
         const response = await fetch(row.getAttribute('data-url'), {
@@ -144,9 +144,9 @@ async function createRecord(row) {
         
         const requestBody = Object.fromEntries(
             [
-                ['record_type', row.querySelector('[data-field="type"] input')?.value.trim()],
-                ['record_data', getRecordDataFromCell(row.querySelector('[data-field="data"]'))],
-                ['record_comment', row.querySelector('[data-field="comment"] input')?.value.trim()]
+                ['type', row.querySelector('[data-field="type"] input')?.value.trim()],
+                ['data', getRecordDataFromCell(row.querySelector('[data-field="data"]'))],
+                ['comment', row.querySelector('[data-field="comment"] input')?.value.trim()]
             ].filter(([_, value]) => value)
         );
         
