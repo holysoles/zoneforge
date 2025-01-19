@@ -9,7 +9,7 @@ ZONE_CREATION = {
             "heading": None,
             "inputs": [
                 {
-                    "id": "zone_name",
+                    "id": "name",
                     "label": "Zone Name",
                     "tooltip": "The domain to create a zone for. AKA origin.",
                     "placeholder": "example.com",
