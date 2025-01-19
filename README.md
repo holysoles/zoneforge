@@ -68,7 +68,7 @@ curl -X DELETE 'http://localhost:5000/api/zone/example.com.'
 ## Records
 
 - Limited support for record types (A, CNAME, SOA, MX, NS, TXT).
-- EOL comments are supported in the `record_comment` parameter when creating/updating records, and returned in the `comments` key of returned records.
+- EOL comments are supported in the `comment` parameter in record related requests.
 
 ### Create
 
@@ -76,9 +76,9 @@ curl -X DELETE 'http://localhost:5000/api/zone/example.com.'
 curl -X POST 'http://localhost:5000/api/zone/example.com./record/subdomain' \
 --header 'Content-Type: application/json' \
 --data '{
-    "record_type": "CNAME",
-    "record_data": "ns100.example.com",
-    "record_comment": "Optional comment"
+    "type": "CNAME",
+    "data": "ns100.example.com",
+    "comment": "Optional comment"
 }'
 ```
 
@@ -94,8 +94,8 @@ curl -X GET 'http://localhost:5000/api/zone/example.com./record/subdomain'
 curl -X PUT 'http://localhost:5000/api/zone/example.com./record/subdomain' \
 --header 'Content-Type: application/json' \
 --data '{
-    "record_type": "CNAME",
-    "record_data": "subdomain2.example.com"
+    "type": "CNAME",
+    "data": "subdomain2.example.com"
 }'
 ```
 
@@ -105,8 +105,8 @@ curl -X PUT 'http://localhost:5000/api/zone/example.com./record/subdomain' \
 curl -X DELETE 'http://localhost:5000/api/zone/example.com./record/subdomain' \
 --header 'Content-Type: application/json' \
 --data '{
-    "record_type": "CNAME",
-    "record_data": "subdomain2.example.com"
+    "type": "CNAME",
+    "data": "subdomain2.example.com"
 }'
 ```
 
