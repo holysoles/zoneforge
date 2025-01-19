@@ -131,7 +131,7 @@ def create_record(
         if zone.get_rdataset(name=record_name, rdtype=record_type):
             raise BadRequest('specified record already exists.')
     tokenizer_data = f" {record_data}; {record_comment}" if record_comment else record_data
-    new_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=tokenizer_data, ) # TODO add origin, but needs to be DNS name obj
+    new_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=tokenizer_data)
     new_rrset = dns.rrset.from_rdata(record_name, record_ttl, new_rdata)
     if write:
         with zone.writer() as txn:
@@ -152,8 +152,8 @@ def update_record(
     zone = get_zones(zone_name)[0]
     if not zone.get_rdataset(name=record_name, rdtype=record_type):
         raise NotFound('specified record does not exist.')
-    tokenizer_data = f" {record_data}; {record_comment}" if record_comment else record_data
-    new_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=tokenizer_data, ) # TODO add origin, but needs to be DNS name obj
+    tokenizer_data = _tokenizer_from_params(record_data=record_data, record_comment=record_comment)
+    new_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=tokenizer_data)
     new_rrset = dns.rrset.from_rdata(record_name, record_ttl, new_rdata)
     # TODO check for planned changes with existing rdata
 
@@ -168,14 +168,25 @@ def delete_record(
         record_name: str,
         record_type: str,
         record_data: str,
+        record_class: dns.rdataclass.RdataClass = "IN",
     ) -> bool:
     zone = get_zones(zone_name)[0]
 
+    tokenizer_data = _tokenizer_from_params(record_data=record_data)
+    target_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=tokenizer_data)
     with zone.writer() as txn:
         try:
-            txn.delete_exact(record_name, record_type)
+            txn.delete_exact(record_name, target_rdata)
             print(f"INFO: Deleted record {record_name} in zone {zone_name}")
         except dns.transaction.DeleteNotExact as e:
             raise NotFound('specified record does not exist.')
     _write_zone(zone)
     return True
+
+def _tokenizer_from_params(record_data: str = None, record_comment: str = None):
+    tokenizer_data = ''
+    if record_data:
+        tokenizer_data += record_data
+    if record_comment:
+        tokenizer_data += '; ' + record_comment
+    return tokenizer_data
