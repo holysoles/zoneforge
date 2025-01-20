@@ -9,13 +9,13 @@ table {
 
 /* Cell styles */
 th, td {
-    padding: 0.5rem !important;
+    padding: 0.5rem;
     text-align: left;
     border: 1px solid #ddd;
     min-height: 42px;
 }
 
-th { 
+th {
     background-color: #f4f4f9;
     font-weight: bold;
 }
@@ -24,7 +24,7 @@ tr:nth-child(even) { background-color: #f9f9f9; }
 tr:hover { background-color: #f1f1f1; }
 
 /* Column widths */
-td:nth-child(1), 
+td:nth-child(1),
 td:nth-child(1) { width: 60px; min-width: 60px; }
 td:nth-child(2) { min-width: 180px; }
 td:nth-child(3) { min-width: 100px; }
@@ -56,6 +56,7 @@ td:nth-child(6) { min-width: 150px; }
 .actions button.delete { background-color: #f44336; }
 .actions button.save { background-color: #2196F3; }
 .actions button.cancel { background-color: #757575; }
+.actions button.create { background-color: #2196F3; }
 
 /* Edit mode inputs */
 .editable input {
@@ -73,10 +74,6 @@ td:nth-child(6) { min-width: 150px; }
 /* New record row */
 .new-record td {
     background-color: #f8f8f8;
-}
-
-.actions button.create { 
-    background-color: #2196F3; 
 }
 
 .new-record input::placeholder {
@@ -97,6 +94,7 @@ td:nth-child(6) { min-width: 150px; }
     white-space: nowrap;
 }
 
+/* SOA Details in header row */
 .soa-details {
     display: flex;
     flex-direction: column;
@@ -117,10 +115,6 @@ td:nth-child(6) { min-width: 150px; }
     margin: 0;
     padding: 0;
     white-space: nowrap;
-}
-
-.zone-options {
-    margin-left: auto;
 }
 
 .soa-details p:not(:last-child)::after {

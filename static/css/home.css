@@ -1,3 +1,4 @@
+/* Base styles */
 body {
     font-family: Arial, sans-serif;
     margin: 0;
@@ -6,6 +7,7 @@ body {
     color: #333;
 }
 
+/* Header styles */
 header {
     background-color: #4CAF50;
     color: #fff;
@@ -28,6 +30,7 @@ header p {
     font-size: 1.2rem;
 }
 
+/* Layout */
 .content {
     max-width: 1200px;
     margin: 2rem auto;
@@ -40,6 +43,7 @@ header p {
     gap: 1.5rem;
 }
 
+/* Grid and Card Layout */
 .zones {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -72,6 +76,7 @@ header p {
     color: #666;
 }
 
+/* Header row */
 .header-row {
     display: flex;
     justify-content: space-between;
@@ -84,9 +89,9 @@ header p {
 
 h3 {
     margin-bottom: 0.5rem;
-
 }
 
+/* Buttons */
 .add-button {
     background-color: #4CAF50;
     color: #fff;
@@ -107,28 +112,15 @@ h3 {
     background-color: #45a049;
 }
 
-
-@media (max-width: 768px) {
-    header h1 {
-        font-size: 1.5rem;
-    }
-
-    header p {
-        font-size: 1rem;
-    }
-}
-
-
-/* Modal Styling */
+/* Modal styles */
 .modal {
-    display: none; /* Hidden by default */
+    display: none;
     position: fixed;
     z-index: 1;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    overflow: auto;
     background-color: rgba(0, 0, 0, 0.4);
 }
 
@@ -141,7 +133,6 @@ h3 {
     background-color: #fefefe;
     margin: 15% auto;
     padding: 20px;
-    border: 1px solid #888;
     width: 40%;
     min-width: 300px;
     max-width: 500px;
@@ -179,11 +170,12 @@ h3 {
 
 label {
     font-weight: bold;
-    display: inline-block;
     position: relative;
 }
 
-input[type="text"], input[type="number"], input[type="email"] {
+input[type="text"],
+input[type="number"],
+input[type="email"] {
     padding: 8px;
     margin: 10px;
     font-size: 14px;
@@ -191,8 +183,8 @@ input[type="text"], input[type="number"], input[type="email"] {
     border-radius: 4px;
 }
 
-
-input[type="submit"], input[type="delete"] {
+input[type="submit"],
+input[type="delete"] {
     padding: 10px 20px;
     border: none;
     border-radius: 4px;
@@ -255,4 +247,15 @@ input[readonly] {
 input[readonly]:focus {
     outline: none;
     box-shadow: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    header h1 {
+        font-size: 1.5rem;
+    }
+    
+    header p {
+        font-size: 1rem;
+    }
 }
