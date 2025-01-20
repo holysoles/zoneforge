@@ -11,7 +11,7 @@ function setButtonsDisplay(row, isEditing) {
 }
 
 // Data extraction helper
-function getRecordDataFromCell(dataCell) {//TODO this isnt handling multiline record data
+function getRecordDataFromCell(dataCell) {
     const input = dataCell.querySelector('input');
     if (input) {
         return input.value.split(':')[1]?.trim() || input.value.trim();
@@ -50,15 +50,8 @@ function startEditing(row) {
         input.value = cell.getAttribute('data-field') === 'data' 
             ? originalText.split(':')[1]?.trim() || originalText
             : originalText;
-        
-        // Add keypress handler for Enter key
-        input.addEventListener('keypress', async (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                await saveChanges(row);
-            }
-        });
-        
+
+        addEnterKeyHandler(row, saveChanges);
         cell.textContent = '';
         cell.appendChild(input);
     });
@@ -131,7 +124,23 @@ async function saveChanges(row) {
     }
 }
 
-// TODO also support enter keypress
+// Add this new function to handle input keypress events
+function addEnterKeyHandler(row, handler) {
+    row.querySelectorAll('input').forEach(input => {
+        input.addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                await handler(row);
+            }
+        });
+    });
+}
+
+// Add enter key handlers to new record rows
+document.querySelectorAll('tr.new-record').forEach(row => {
+    addEnterKeyHandler(row, createRecord);
+});
+
 async function createRecord(row) {
     try {
         const nameInput = row.querySelector('[data-field="name"] input');
