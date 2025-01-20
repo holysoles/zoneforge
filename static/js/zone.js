@@ -131,6 +131,7 @@ async function saveChanges(row) {
     }
 }
 
+// TODO also support enter keypress
 async function createRecord(row) {
     try {
         const nameInput = row.querySelector('[data-field="name"] input');

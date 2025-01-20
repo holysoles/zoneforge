@@ -128,6 +128,9 @@ curl -X DELETE 'http://localhost:5000/api/zone/example.com./record/subdomain' \
 |  CRUD for DNS Zones                    | Complete          |
 |  CRUD for DNS Records                  | Complete          |
 |  Thread Safety for DNS Record CRUD     | Backlog           |
+|  Zone Name Mutability                  | Backlog           |
+|  Patch Method for DNS Zones            | Backlog           |
+|  Patch Method for DNS Records          | Backlog           |
 | **Management**                          |                    |
 |  Expanded Record Type Support          | Planned           |
 |  Authentication                        | Backlog           |

@@ -3,9 +3,23 @@
     <div class="manager">
         <div class="header-row">
             <h3>Zone: {{zone}}</h3>
+            <div class="soa-details">
+                <div class="soa-details-row">
+                    <p>Primary NS: {{soa.data.mname}}</p>
+                    <p>Email: {{soa.data.rname}}</p>
+                    <p>Default TTL: {{soa.ttl}}</p>
+                    <p>Serial: {{soa.data.serial}}</p>
+                </div>
+                <div class="soa-details-row">
+                    <p>Refresh: {{soa.data.refresh}}</p>
+                    <p>Retry: {{soa.data.retry}}</p>
+                    <p>Expire: {{soa.data.expire}}</p>
+                    <p>Minimum: {{soa.data.minimum}}</p>
+                </div>
+            </div>
             <div class="zone-options">
                 {% if modal is defined %}
-                    <button class="delete-zone" onclick="document.querySelector('#{{ modal.id }}').classList.toggle('modal-active')">{{ modal['open-char'] }}</button>
+                    <button class="edit-zone" onclick="document.querySelector('#{{ modal.id }}').classList.toggle('modal-active')">{{ modal['open-char'] }}</button>
                 {% endif %}
             </div>
         </div>
@@ -81,4 +95,5 @@
         {% endif %}
     </div>
     <script src="{{ url_for('static', filename='js/zone.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modal.js') }}"></script>
 {% endblock %}

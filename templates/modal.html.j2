@@ -3,7 +3,7 @@
         <span class="close">
             <button onclick="document.querySelector('#{{ modal.id }} form').reset() ;document.querySelector('#{{ modal.id }}').classList.toggle('modal-active')">{{ modal['close-char'] }}</button>
         </span>
-        <form action="{{ modal_api }}?browser=true" method="{{ modal['api-method'] }}">
+        <form id="{{ modal.id }}-form" data-api-method="{{ modal['api-method'] }}" data-api-endpoint="{{ modal['api-endpoint'] }}">
             <h2>{{ modal.heading }}</h2>
             {% for section in modal.form %}
                 {% if section.heading %}
@@ -15,7 +15,10 @@
                         <label for="{{ input.id }}">{{ input.label }}
                             <span class="tooltip">{{ input.tooltip }}</span>
                         </label>
-                        <input type="{{ input.type }}" id="{{ input.id }}" name="{{ input.id }}" {% if input.default %} value="{{ input.default }}" {% endif %}
+                        {% if modal_default_values is defined %}
+                            {% set default_value = modal_default_values[input.id] if input.id in modal_default_values else none %}
+                        {% endif %}
+                        <input type="{{ input.type }}" id="{{ input.id }}" name="{{ input.id }}" {% if default_value is not none %} value="{{ default_value }}" {% endif %}
                         {% if input.required %} required {% endif %}
                         {% if 'placeholder' in input %} placeholder="{{ input.placeholder }}" {% endif %}
                         />

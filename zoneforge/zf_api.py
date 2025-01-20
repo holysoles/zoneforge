@@ -2,14 +2,13 @@ from flask import redirect, url_for
 from flask_restx import Resource, reqparse
 from zoneforge.zf import get_zones, create_zone, delete_zone, get_records, create_record, update_record, delete_record, record_to_response
 from werkzeug.exceptions import *
+import dns.name
 
 # TODO for parsers: make a list of valid values
 zone_parser = reqparse.RequestParser()
-zone_parser.add_argument('browser', type=bool, help='Track if requests are coming from the web application', required=False) 
 zone_parser.add_argument('name', type=str, help='Name of the DNS Zone', required=False) 
 
 record_parser = reqparse.RequestParser()
-record_parser.add_argument('browser', type=bool, help='Track if requests are coming from the web application', required=False) 
 record_parser.add_argument('name', type=str, help='Name of the DNS record', required=False)
 record_parser.add_argument('ttl', type=str, help='TTL of the DNS record', required=False)
 record_parser.add_argument('type', type=str, help='Type of DNS Record', required=False)
@@ -78,9 +77,39 @@ class ZoneResource(Resource):
         new_zone = create_zone(dns_name, soa_rrset, primary_ns_rrset, primary_ns_a_rrset)
         new_zone_response = new_zone.to_response()
 
-        if args.get('browser'):
-            return redirect(url_for('home'))
         return new_zone_response
+    
+    def put(self, zone_name: str = None):
+        parser = zone_parser.copy()
+        parser.add_argument('soa_ttl', type=str, help='SOA TTL', required=True) 
+        parser.add_argument('admin_email', type=str, help='Email address of zone admin', required=True) 
+        parser.add_argument('refresh', type=str, help='Record refresh frequency for secondary nameservers', required=True)
+        parser.add_argument('retry', type=str, help='Retry frequency for failed zone transfers', required=True) 
+        parser.add_argument('expire', type=str, help='Period after which the zone is discarded if no updates are received', required=True) 
+        parser.add_argument('minimum', type=str, help='Used for calculation of negative response TTL', required=True)
+        parser.add_argument('primary_ns', type=str, help='Primary nameserver for the zone', required=True)
+        # TODO go cleanup modal form to not pass primary NS fields
+        args = parser.parse_args()
+
+        if not zone_name:
+            zone_name = args.get("name")
+            if not zone_name:
+                raise BadRequest("A zone name must be specified with either a URL path of '/zone/[zone_name]' or with the 'name' parameter")
+        dns_name = dns.name.from_text(zone_name)
+
+        zones = get_zones(dns_name)
+        if len(zones) != 1:        
+            raise BadRequest('A zone with that name does not currently exist. Zone names are not currently mutable.')
+        
+        # update SOA record
+        primary_ns = args['primary_ns']
+        admin_email = args['admin_email'].replace('@', '.')
+        _ = update_record(zone_name=zone_name, record_name="@", record_type="SOA", record_data=f"{primary_ns} {admin_email} 0 {args['refresh']} {args['retry']} {args['expire']} {args['minimum']}", record_ttl=args['soa_ttl'])
+
+        update_zone = get_zones(dns_name)
+        update_zone_response = update_zone[0].to_response()
+        return update_zone_response
+
     
     def delete(self, zone_name: str = None):
         args = zone_parser.parse_args()
@@ -96,13 +125,22 @@ class ZoneResource(Resource):
             raise NotFound('A zone with that name does not exist.')
 
 class RecordResource(Resource):
-    def get(self, zone_name: str, record_name: str = None):
+    def get(self, zone_name: str, record_name: str = None, record_type: str = None):
         args = record_parser.parse_args()
         if not record_name:
             record_name = args.get("name")
 
-        record_type = args.get('type')
-        records = get_records(zone_name=zone_name, record_name=record_name, record_type=record_type)
+        if not record_type:
+            record_type = args.get('type')
+        # Only include SOA if specifically requested. We treat this as part of zone data normally
+        include_soa = record_type == 'SOA'
+        
+        records = get_records(
+            zone_name=zone_name, 
+            record_name=record_name, 
+            record_type=record_type,
+            include_soa=include_soa
+        )
         records_response = record_to_response(records=records)
 
         if record_name and not records:

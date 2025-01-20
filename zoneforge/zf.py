@@ -39,7 +39,7 @@ class ZFZone(dns.zone.Zone):
     
     def to_response(self):
         repr = {}
-        repr['name'] = self.origin
+        repr['name'] = self.origin.to_text()
         repr['record_count'] = self.record_count
         soa = super().get_rrset(name="@", rdtype="SOA") # could use zone.get_soa(), but we want an rrset for transform_records
         repr['soa'] = record_to_response(soa)[0]
@@ -118,6 +118,7 @@ def get_records(
         zone_name: str,
         record_name: str = None,
         record_type: str = None,
+        include_soa: bool = False,
     ) -> list[dns.rrset.RRset]:
     zone = get_zones(zone_name)
     if not zone:
@@ -136,7 +137,11 @@ def get_records(
     else:
         record_type = dns.rdatatype.from_text(record_type) if record_type else dns.rdatatype.from_text('ANY')
         all_records_gen = zone.iterate_rdatasets(rdtype=record_type)
-        all_records = (dns.rrset.from_rdata_list(record[0], ttl=record[1].ttl, rdatas=record[1].items) for record in all_records_gen)
+        all_records = [
+            dns.rrset.from_rdata_list(record[0], ttl=record[1].ttl, rdatas=record[1].items) 
+            for record in all_records_gen
+            if include_soa or record[1].rdtype != dns.rdatatype.SOA
+        ]
 
         return list(all_records)
 
@@ -231,6 +236,8 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
             if getattr(rdata, "rdcomment"):
                 record["comment"] = rdata.rdcomment
             if record_type == SOA:
+                record["data"]["primary_ns"] = rdata.mname.to_text()
+                record["data"]["email"] = rdata.rname.to_text() #TODO need to convert to FQDN, then to email format
                 record["data"]["serial"] = rdata.serial
                 record["data"]["refresh"] = rdata.refresh
                 record["data"]["retry"] = rdata.retry
