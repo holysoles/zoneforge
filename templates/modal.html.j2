@@ -21,12 +21,18 @@
                         <input type="{{ input.type }}" id="{{ input.id }}" name="{{ input.id }}" {% if default_value is not none %} value="{{ default_value }}" {% endif %}
                         {% if input.required %} required {% endif %}
                         {% if 'placeholder' in input %} placeholder="{{ input.placeholder }}" {% endif %}
+                        {% if 'readonly' in input %} readonly="{{input.readonly}}" {% endif %}
                         />
                     </div>
                 {% endfor %}
                 </div>
             {% endfor %}
-            <input type="submit" value="Submit"/>
+            <div class="form-actions">
+                <input type="submit" value="Submit"/>
+                {% if modal.deleteable %}
+                <input type="delete" value="Delete" data-api-endpoint="{{ modal['api-endpoint'] }}" data-api-id="{{ modal['api-id'] }}" data-delete-redirect="{{ url_for(modal['delete-redirect']) }}"/>
+                {% endif %}
+            </div>
         </form>
     </div>
 </div>
