@@ -1,10 +1,9 @@
-from flask import redirect, url_for
+from flask import redirect, url_for, current_app
 from flask_restx import Resource, reqparse
 from zoneforge.zf import get_zones, create_zone, delete_zone, get_records, create_record, update_record, delete_record, record_to_response
 from werkzeug.exceptions import *
 import dns.name
 
-# TODO for parsers: make a list of valid values
 zone_parser = reqparse.RequestParser()
 zone_parser.add_argument('name', type=str, help='Name of the DNS Zone', required=False) 
 
@@ -51,7 +50,7 @@ class ZoneResource(Resource):
         parser.add_argument('minimum', type=str, help='Used for calculation of negative response TTL', required=True)
         parser.add_argument('primary_ns', type=str, help='Primary nameserver for the zone', required=True) 
         parser.add_argument('primary_ns_ttl', type=str, help="TTL for the primary nameserver's NS record", required=True)
-        parser.add_argument('primary_ns_ip', type=str, help="IP for the primary nameserver's A record", required=False) #TODO use inputs.ipv4
+        parser.add_argument('primary_ns_ip', type=str, help="IP for the primary nameserver's A record", required=False)
         parser.add_argument('primary_ns_a_ttl', type=str, help="TTL for the primary nameserver's A record", required=False) 
         args = parser.parse_args()
 
@@ -88,7 +87,6 @@ class ZoneResource(Resource):
         parser.add_argument('expire', type=str, help='Period after which the zone is discarded if no updates are received', required=True) 
         parser.add_argument('minimum', type=str, help='Used for calculation of negative response TTL', required=True)
         parser.add_argument('primary_ns', type=str, help='Primary nameserver for the zone', required=True)
-        # TODO go cleanup modal form to not pass primary NS fields
         args = parser.parse_args()
 
         if not zone_name:

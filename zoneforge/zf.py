@@ -15,9 +15,7 @@ from os.path import join, exists, basename
 import glob
 import dns.rrset
 from werkzeug.exceptions import *
-
-ZONE_FILE_FOLDER = './lib/examples' # TODO get this declared in app.py, support it as a env var and arg
-DEFAULT_ZONE_TTL = 86400 # TODO this should be a per-zone setting (see other notes)
+from flask import current_app
 
 ZFZONE_CUSTOM_ATTRS = ['_zone', 'record_count']
 class ZFZone(dns.zone.Zone):
@@ -49,8 +47,8 @@ class ZFZone(dns.zone.Zone):
         update_timestamp = int(datetime.now().strftime("%Y%m%d"))
         with self.writer() as txn:
             txn.update_serial(value=update_timestamp, relative=False)
-        print(f"INFO: Writing zone {self.origin} to disk") #TODO remove
-        zone_file_path = join(ZONE_FILE_FOLDER, f"{self.origin}zone")
+        zone_file_path = join(current_app.config['ZONE_FILE_FOLDER'], f"{self.origin}zone")
+        print(f"DEBUG: Writing zone {self.origin} to '{zone_file_path}'")
         self.to_file(f=zone_file_path, want_comments=True, want_origin=True)
 
 def get_zones(zone_name: dns.name.Name = None) -> list[ZFZone]:
@@ -58,9 +56,9 @@ def get_zones(zone_name: dns.name.Name = None) -> list[ZFZone]:
     zones = []
     if zone_name:
         print("Getting zone object for origin", zone_name)
-        zonefile_map[zone_name] = join(ZONE_FILE_FOLDER, f"{zone_name}zone")
+        zonefile_map[zone_name] = join(current_app.config['ZONE_FILE_FOLDER'], f"{zone_name}zone")
     else:
-        zonefile_pattern = join(ZONE_FILE_FOLDER, "*zone")
+        zonefile_pattern = join(current_app.config['ZONE_FILE_FOLDER'], "*zone")
         zone_files = glob.glob(zonefile_pattern)
         for filepath in zone_files:
             filename = basename(filepath) 
@@ -72,7 +70,6 @@ def get_zones(zone_name: dns.name.Name = None) -> list[ZFZone]:
         if not exists(zone_file_path):
             continue
         try:
-            #TODO parse file, dump ttl to .ttl file for zone if there is a ttl directive
             zone = dns.zone.from_file(
                 f=zone_file_path,
                 origin=zone_name,
@@ -91,7 +88,7 @@ def create_zone(
         ns_rrset: dns.rrset.RRset,
         ns_a_rrset: dns.rrset.RRset = None
     ) -> ZFZone:
-    zone_file_path = join(ZONE_FILE_FOLDER, f"{zone_name}zone")
+    zone_file_path = join(current_app.config['ZONE_FILE_FOLDER'], f"{zone_name}zone")
     if exists(zone_file_path):
         raise Forbidden('A zone with that name already exists.')
     else:
@@ -108,7 +105,7 @@ def create_zone(
         return new_zfzone
 
 def delete_zone(zone_name: dns.name.Name) -> bool:
-    zone_file_name = join(ZONE_FILE_FOLDER, f"{zone_name}zone")
+    zone_file_name = join(current_app.config['ZONE_FILE_FOLDER'], f"{zone_name}zone")
     if exists(zone_file_name):
         remove(zone_file_name)
         return True
@@ -165,7 +162,7 @@ def create_record(
     tokenizer_data = f" {record_data}; {record_comment}" if record_comment else record_data
     new_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=tokenizer_data)
     if not record_ttl:
-        record_ttl = DEFAULT_ZONE_TTL
+        record_ttl = current_app.config['DEFAULT_ZONE_TTL']
     new_rrset = dns.rrset.from_rdata(record_name, record_ttl, new_rdata)
     if write:
         with zone.writer() as txn:
@@ -189,8 +186,6 @@ def update_record(
     tokenizer_data = _tokenizer_from_params(record_data=record_data, record_comment=record_comment)
     new_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=tokenizer_data)
     new_rrset = dns.rrset.from_rdata(record_name, record_ttl, new_rdata)
-
-    # TODO check for planned changes with existing rdata
 
     with zone.writer() as txn:
         txn.replace(new_rrset)
@@ -237,7 +232,7 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
                 record["comment"] = rdata.rdcomment
             if record_type == SOA:
                 record["data"]["primary_ns"] = rdata.mname.to_text()
-                record["data"]["email"] = rdata.rname.to_text() #TODO need to convert to FQDN, then to email format
+                record["data"]["email"] = rdata.rname.to_text()
                 record["data"]["serial"] = rdata.serial
                 record["data"]["refresh"] = rdata.refresh
                 record["data"]["retry"] = rdata.retry
@@ -245,6 +240,7 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
                 record["data"]["minimum"] = rdata.minimum
             elif record_type == MX:
                 record["data"]["exchange"] = rdata.exchange.to_text()
+                record["data"]["preference"] = rdata.preference
             elif record_type == NS:
                 record["data"]["target"] = rdata.target.to_text()
             elif record_type == CNAME:

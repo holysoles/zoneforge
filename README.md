@@ -24,7 +24,16 @@ ZoneForge simplifies the *management* of RFC1035/BIND-style DNS zone files by pr
 - [Resources](#Resources)
 - [Credits](#Credits)
 
-# Features
+# Configuration
+
+Environment variables are available to configure the application.
+
+| Variable | Default | Description |
+| -------- | ------- | ----------- |
+| ZONE_FILE_FOLDER | ./lib/examples | The folder path to store/load zone files. |
+| DEFAULT_ZONE_TTL | 86400 | The default TTL for new zones. |
+
+# API Features
 
 ## Zones
 
@@ -118,8 +127,8 @@ curl -X DELETE 'http://localhost:5000/api/zone/example.com./record/subdomain' \
 |-----------------------------------------|--------------------|
 | **Web Interface**                       |                    |
 |  Create Zones                          | Complete          |
-|  Delete Zones                          | Planned           |
-|  Edit Zones                            | Planned           |
+|  Delete Zones                          | Complete          |
+|  Edit Zones                            | Complete          |
 |  Edit Records                          | Complete          |
 |  Create Records                        | Complete          |
 |  Delete Records                        | Complete          |
