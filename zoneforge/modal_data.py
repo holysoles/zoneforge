@@ -130,6 +130,7 @@ ZONE_EDIT_FORM = [
                 "placeholder": "example.com",
                 "type": "text",
                 "required": True,
+                "readonly": True,
             },
             # {
             #    "id": "zone_ttl",
@@ -210,6 +211,9 @@ ZONE_EDIT = {
     "id": "edit-zone-modal",
     "api-method": "PUT",
     "api-endpoint": "/api/zone",
+    "api-id": "name",
+    "deleteable": True,
+    "delete-redirect": "home",
     "open-char": "Edit",
     "close-char": "&times;",
     "form": ZONE_EDIT_FORM

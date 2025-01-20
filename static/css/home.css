@@ -142,8 +142,12 @@ h3 {
     margin: 15% auto;
     padding: 20px;
     border: 1px solid #888;
-    width: 80%;
+    width: 40%;
+    min-width: 300px;
+    max-width: 500px;
     text-align: center;
+    border-radius: 4px;
+    border: none;
 }
 
 /* Close button */
@@ -187,17 +191,34 @@ input[type="text"], input[type="number"], input[type="email"] {
     border-radius: 4px;
 }
 
-input[type="submit"] {
-    background-color: #4CAF50;
-    color: white;
+
+input[type="submit"], input[type="delete"] {
     padding: 10px 20px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    margin: 5px 10px;
+    width: 120px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+input[type="submit"] {
+    background-color: #4CAF50;
+    color: white;
 }
 
 input[type="submit"]:hover {
     background-color: #45a049;
+}
+
+input[type="delete"] {
+    background-color: #dc3545;
+    color: white;
+}
+
+input[type="delete"]:hover {
+    background-color: #c82333;
 }
 
 /* Tooltip styles */
@@ -222,4 +243,16 @@ label:has(+ input:required)::after {
     content: "*";
     color: red;
     font-weight: bold;
+}
+
+input[readonly] {
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    color: #666;
+    cursor: not-allowed;
+}
+
+input[readonly]:focus {
+    outline: none;
+    box-shadow: none;
 }
