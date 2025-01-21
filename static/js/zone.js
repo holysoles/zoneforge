@@ -11,13 +11,17 @@ function setButtonsDisplay(row, isEditing) {
 }
 
 // Data extraction helper
-function getRecordDataFromCell(dataCell) {
-    const input = dataCell.querySelector('input');
-    if (input) {
-        return input.value.split(':')[1]?.trim() || input.value.trim();
+function getRecordDataFromCell(dataCellList) {
+    let returnText = '';
+    for (const dataCell of dataCellList) {
+        const input = dataCell.querySelector('input');
+        if (input) {
+            returnText += input.value.trim() + " ";
+        } else {
+            returnText += dataCell.textContent.trim() + " ";
+        }
     }
-    const text = dataCell.textContent.trim();
-    return text.includes(':') ? text.split(':')[1].trim() : text;
+    return returnText;
 }
 
 // Event handlers
@@ -48,7 +52,7 @@ function startEditing(row) {
         const input = document.createElement('input');
         input.type = 'text';
         input.value = cell.getAttribute('data-field') === 'data' 
-            ? originalText.split(':')[1]?.trim() || originalText
+            ? originalText
             : originalText;
 
         addEnterKeyHandler(row, saveChanges);
@@ -98,7 +102,7 @@ async function saveChanges(row) {
         const requestBody = Object.fromEntries([
             ['type', row.querySelector('[data-field="type"] input')?.value.trim()],
             ['ttl', row.querySelector('[data-field="ttl"] input')?.value.trim()],
-            ['data', getRecordDataFromCell(row.querySelector('[data-field="data"]'))],
+            ['data', getRecordDataFromCell(row.querySelectorAll('[data-field="data"]'))],
             ['comment', row.querySelector('[data-field="comment"] input')?.value.trim()]
         ].filter(([_, value]) => value));
 
@@ -180,3 +184,36 @@ async function createRecord(row) {
         alert(`Failed to create record: ${error.message}`);
     }
 }
+
+// Add this new function to create a data row input
+function createDataRowInput() {
+    const div = document.createElement('div');
+    div.className = 'data-entry';
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'data';
+    
+    const removeButton = document.createElement('button');
+    removeButton.type = 'button';
+    removeButton.className = 'remove-data-row';
+    removeButton.textContent = '−';
+    removeButton.onclick = (e) => {
+        e.preventDefault();
+        div.remove();
+    };
+    
+    div.appendChild(input);
+    div.appendChild(removeButton);
+    return div;
+}
+
+// Add click handler for add-data-row buttons
+document.querySelectorAll('.add-data-row').forEach(button => {
+    button.addEventListener('click', (e) => {
+        e.preventDefault();
+        const dataRows = button.closest('.data-rows');
+        const newRow = createDataRowInput();
+        dataRows.insertBefore(newRow, button);
+    });
+});

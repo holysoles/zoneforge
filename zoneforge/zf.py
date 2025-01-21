@@ -221,6 +221,7 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
     for rrset in records:
         print(f"DEBUG: transforming records under name {rrset.name}")
         for rdata in rrset.items:
+            # dict key order matters here, since some records have multiple data fields and will be tokenized from a string later
             record_type = rrset.rdtype
             record = {
                         "name": str(rrset.name),
@@ -239,8 +240,8 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
                 record["data"]["expire"] = rdata.expire
                 record["data"]["minimum"] = rdata.minimum
             elif record_type == MX:
-                record["data"]["exchange"] = rdata.exchange.to_text()
                 record["data"]["preference"] = rdata.preference
+                record["data"]["exchange"] = rdata.exchange.to_text()
             elif record_type == NS:
                 record["data"]["target"] = rdata.target.to_text()
             elif record_type == CNAME:

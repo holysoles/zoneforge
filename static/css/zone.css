@@ -2,7 +2,7 @@
 table {
     width: 100%;
     border-collapse: collapse;
-    margin: 2rem 0;
+    margin: 0;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
 }
@@ -24,16 +24,13 @@ tr:nth-child(even) { background-color: #f9f9f9; }
 tr:hover { background-color: #f1f1f1; }
 
 /* Column widths */
-td:nth-child(1),
-td:nth-child(1) { width: 60px; min-width: 60px; }
-td:nth-child(2) { min-width: 180px; }
-td:nth-child(3) { min-width: 100px; }
-td:nth-child(4) { min-width: 80px; }
-td:nth-child(5) { min-width: 200px; }
-td:nth-child(6) { min-width: 150px; }
-
-/* Action buttons */
-.actions-cell { min-width: 160px; }
+td:nth-child(1) { width: 5%; min-width: 10px; } /* Select */
+td:nth-child(2) { width: 15%; min-width: 180px; } /* Name */
+td:nth-child(3) { width: 10%; min-width: 100px; } /* Type */
+td:nth-child(4) { width: 8%; min-width: 60px; } /* TTL */
+td:nth-child(5) { width: 35%; min-width: 250px; } /* Data */
+td:nth-child(6) { width: 15%; min-width: 150px; } /* Comments */
+td:nth-child(7) { width: 17%; min-width: 160px; } /* Actions */
 
 .actions {
     display: flex;
@@ -87,6 +84,7 @@ td:nth-child(6) { min-width: 150px; }
     align-items: flex-start;
     gap: 2rem;
     margin-bottom: 1rem;
+    flex-shrink: 0;
 }
 
 .header-row h3 {
@@ -121,4 +119,58 @@ td:nth-child(6) { min-width: 150px; }
     content: "•";
     margin-left: 1rem;
     color: #999;
+}
+
+/* Data field styling */
+.data-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.data-entry {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.data-row-label {
+    margin: 0;
+}
+
+.data-row {
+    margin: 0;
+}
+
+.add-data-row {
+    padding: 2px 8px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+.remove-data-row {
+    padding: 2px 8px;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+.manager {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.zones {
+    flex: 1;
+    display: block; /* Ensures div takes full width */
 }

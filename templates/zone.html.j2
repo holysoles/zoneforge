@@ -44,11 +44,16 @@
                         <td class="editable" data-field="name">{{ record.name }}</td>
                         <td class="editable" data-field="type">{{ record.type }}</td>
                         <td class="editable" data-field="ttl">{{ record.ttl }}</td>
-                        <td class="editable" data-field="data">
+                        <td>
                             {% if record.data %}
-                                {% for key, value in record.data.items() %}
-                                    {{ key[0]|upper}}{{key[1:] }}: {{ value }}<br>
-                                {% endfor %}
+                                <div class="data-rows">
+                                    {% for key, value in record.data.items() %}
+                                    <div class="data-entry">
+                                        <p class="data-row-label">{{ key[0]|upper}}{{key[1:] }}:</p>
+                                        <p class="data-row editable" data-field="data">{{ value }}</p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
                             {% endif %}
                         </td>
                         <td class="editable" data-field="comment">{{ record.comment }}</td>
@@ -76,7 +81,10 @@
                             <input type="text" placeholder="ttl">
                         </td>
                         <td class="editable" data-field="data">
-                            <input type="text" placeholder="data">
+                            <div class="data-rows">
+                                <input type="text" placeholder="data">
+                                <button type="button" class="add-data-row">+</button>
+                            </div>
                         </td>
                         <td class="editable" data-field="comment">
                             <input type="text" placeholder="comment">
