@@ -164,6 +164,15 @@ curl -X DELETE 'http://localhost:5000/api/zone/example.com./record/subdomain' \
 - [DYN](https://help.dyn.com/how-to-format-a-zone-file/)
 - [Oracle](https://docs.oracle.com/en-us/iaas/Content/DNS/Reference/formattingzonefile.htm)
 
+## Record Types
+
+- [Microsoft Overview](https://learn.microsoft.com/en-us/azure/dns/dns-zones-records)
+
+## RFCs
+
+- [RFC1035](https://www.rfc-editor.org/rfc/rfc1035.html)
+- [RFC1183](https://www.rfc-editor.org/rfc/rfc1183.html)
+
 ## Migrating Existing DNS to a Zone File
 
 For each domain that a given DNS server is authorative for:
