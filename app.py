@@ -39,12 +39,12 @@ def zone(zone_name):
     current_zone_data = {
         "name": zone_name,
         "soa_ttl": soa["ttl"],
-        "admin_email": soa["data"]["email"],
+        "admin_email": soa["data"]["rname"],
         "refresh": soa["data"]["refresh"],
         "retry": soa["data"]["retry"],
         "expire": soa["data"]["expire"],
         "minimum": soa["data"]["minimum"],
-        "primary_ns": soa["data"]["primary_ns"],
+        "primary_ns": soa["data"]["mname"],
 
     }
     return render_template('zone.html.j2', zone=zone_name, soa=soa, records=records, modal=ZONE_EDIT, modal_api='/api/zone', modal_default_values=current_zone_data)
