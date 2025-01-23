@@ -13,14 +13,14 @@ function setButtonsDisplay(row, isEditing) {
 // Data extraction helper
 function getRecordDataFromCell(dataCellList) {
     let returnText = '';
-    for (const dataCell of dataCellList) {
+    dataCellList.forEach(dataCell => {
         const input = dataCell.querySelector('input');
         if (input) {
             returnText += input.value.trim() + " ";
         } else {
             returnText += dataCell.textContent.trim() + " ";
         }
-    }
+    });
     return returnText;
 }
 
@@ -49,16 +49,39 @@ function startEditing(row) {
         const originalText = cell.textContent.trim();
         cell.setAttribute('data-original', originalText);
         
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.value = cell.getAttribute('data-field') === 'data' 
-            ? originalText
-            : originalText;
-
-        addEnterKeyHandler(row, saveChanges);
-        cell.textContent = '';
-        cell.appendChild(input);
+        if (cell.getAttribute('data-field') === 'data') {
+            // For data cells, create a new input in the existing structure
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = originalText;
+            cell.textContent = '';
+            cell.appendChild(input);
+            
+            // Add the + button if it's the last data entry
+            const dataEntry = cell.closest('.data-entry');
+            if (dataEntry && !dataEntry.nextElementSibling) {
+                const addButton = document.createElement('button');
+                addButton.type = 'button';
+                addButton.className = 'add-data-row';
+                addButton.textContent = '+';
+                addButton.onclick = (e) => {
+                    e.preventDefault();
+                    const newRow = createDataRowInput();
+                    dataEntry.insertAdjacentElement('afterend', newRow);
+                };
+                dataEntry.appendChild(addButton);
+            }
+        } else {
+            // For non-data cells, handle as before
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = originalText;
+            cell.textContent = '';
+            cell.appendChild(input);
+        }
     });
+    
+    addEnterKeyHandler(row, saveChanges);
     setButtonsDisplay(row, true);
 }
 
@@ -77,7 +100,7 @@ async function deleteRecord(row) {
     try {
         const requestBody = Object.fromEntries([
             ['type', row.querySelector('[data-field="type"]').textContent.trim()],
-            ['data', getRecordDataFromCell(row.querySelector('[data-field="data"]'))]
+            ['data', getRecordDataFromCell(row.querySelectorAll('[data-field="data"]'))]
         ].filter(([_, value]) => value));
 
         const response = await fetch(row.getAttribute('data-url'), {
@@ -161,7 +184,7 @@ async function createRecord(row) {
             [
                 ['type', row.querySelector('[data-field="type"] input')?.value.trim()],
                 ['ttl', row.querySelector('[data-field="ttl"] input')?.value.trim()],
-                ['data', getRecordDataFromCell(row.querySelector('[data-field="data"]'))],
+                ['data', getRecordDataFromCell(row.querySelectorAll('[data-field="data"]'))],
                 ['comment', row.querySelector('[data-field="comment"] input')?.value.trim()]
             ].filter(([_, value]) => value)
         );
@@ -193,6 +216,17 @@ function createDataRowInput() {
     const input = document.createElement('input');
     input.type = 'text';
     input.placeholder = 'data';
+
+    // Create p element for the data-field label
+    const pLabel = document.createElement('p');
+    pLabel.className = 'data-row-label';
+    pLabel.textContent = '';
+    
+    // Create p element with data-field attribute
+    const pData = document.createElement('p');
+    pData.className = 'data-row editable';
+    pData.setAttribute('data-field', 'data');
+    pData.appendChild(input);
     
     const removeButton = document.createElement('button');
     removeButton.type = 'button';
@@ -203,7 +237,8 @@ function createDataRowInput() {
         div.remove();
     };
     
-    div.appendChild(input);
+    div.appendChild(pLabel);
+    div.appendChild(pData);
     div.appendChild(removeButton);
     return div;
 }
@@ -212,8 +247,8 @@ function createDataRowInput() {
 document.querySelectorAll('.add-data-row').forEach(button => {
     button.addEventListener('click', (e) => {
         e.preventDefault();
-        const dataRows = button.closest('.data-rows');
+        const currentDataEntry = button.parentElement;
         const newRow = createDataRowInput();
-        dataRows.insertBefore(newRow, button);
+        currentDataEntry.insertAdjacentElement('afterend', newRow);
     });
 });

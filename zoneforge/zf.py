@@ -9,6 +9,7 @@ import dns.rrset
 import dns.versioned
 import dns.transaction
 from dns.rdatatype import *
+import inspect
 from datetime import datetime
 from os import remove
 from os.path import join, exists, basename
@@ -213,6 +214,7 @@ def delete_record(
     zone.write_to_file()
     return True
 
+#   records cannot currently be created with the same name and type, but different data (i.e. MX records)
 def record_to_response(records: list[dns.rrset.RRset]) -> dict:
     transformed_records = []
     if isinstance(records, dns.rrset.RRset):
@@ -221,7 +223,7 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
     for rrset in records:
         print(f"DEBUG: transforming records under name {rrset.name}")
         for rdata in rrset.items:
-            # dict key order matters here, since some records have multiple data fields and will be tokenized from a string later
+            # key order inside record.data matters, since some records have multiple data fields and will be tokenized from a string later
             record_type = rrset.rdtype
             record = {
                         "name": str(rrset.name),
@@ -229,29 +231,25 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
                         "ttl": rrset.ttl,
                         "data": {},
                     }
-            if getattr(rdata, "rdcomment"):
-                record["comment"] = rdata.rdcomment
-            if record_type == SOA:
-                record["data"]["primary_ns"] = rdata.mname.to_text()
-                record["data"]["email"] = rdata.rname.to_text()
-                record["data"]["serial"] = rdata.serial
-                record["data"]["refresh"] = rdata.refresh
-                record["data"]["retry"] = rdata.retry
-                record["data"]["expire"] = rdata.expire
-                record["data"]["minimum"] = rdata.minimum
-            elif record_type == MX:
-                record["data"]["preference"] = rdata.preference
-                record["data"]["exchange"] = rdata.exchange.to_text()
-            elif record_type == NS:
-                record["data"]["target"] = rdata.target.to_text()
-            elif record_type == CNAME:
-                record["data"]["target"] = rdata.target.to_text()
-            elif record_type == A:
-                record["data"]["address"] = rdata.address
-            elif record_type == TXT:
-                record["data"]["data"] = rdata.to_text()
-            else:
-                print(f"ERROR: DNS Record Type f{dns.rrset.rdtype} not supported.")
+            if getattr(rdata, 'rdcomment', None):
+                record['comment'] = rdata.rdcomment
+            skip_properties = ['rdclass', 'rdtype', 'rdcomment'] # skip these for dynamic data fields since we skip or rename them
+            record_slots = rdata.__getstate__() # could use getallslots, but this seems more appropriate
+            for slot in record_slots:
+                if slot in skip_properties:
+                    continue
+                property_value = getattr(rdata, slot)
+                if property_value:
+                    if slot == "strings":
+                        txt = ""
+                        prefix = ""
+                        for s in property_value:
+                            txt += f'{prefix}{dns.rdata._escapify(s)}'
+                            prefix = " "
+                        property_value = txt
+                    else:
+                        property_value = str(property_value) #TODO necessary?
+                record["data"][slot] = property_value
                     
             transformed_records.append(record)
     return transformed_records
