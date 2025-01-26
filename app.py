@@ -33,22 +33,24 @@ def home():
 
 @app.route("/zone/<string:zone_name>", methods=['GET'])
 def zone(zone_name):
+    zone = zf_api.get_zones(zone_name=zone_name)[0].to_response()
     zf_record = zf_api.RecordResource()
     records = zf_record.get(zone_name=zone_name)
-    soa = zf_record.get(zone_name=zone_name, record_type='SOA')[0]
     current_zone_data = {
         "name": zone_name,
-        "soa_ttl": soa["ttl"],
-        "admin_email": soa["data"]["rname"],
-        "refresh": soa["data"]["refresh"],
-        "retry": soa["data"]["retry"],
-        "expire": soa["data"]["expire"],
-        "minimum": soa["data"]["minimum"],
-        "primary_ns": soa["data"]["mname"],
-
+        "soa_ttl": zone['soa']['ttl'],
+        "admin_email": zone['soa']['data']['rname'],
+        "refresh": zone['soa']['data']['refresh'],
+        "retry": zone['soa']['data']['retry'],
+        "expire": zone['soa']['data']['expire'],
+        "minimum": zone['soa']['data']['minimum'],
+        "primary_ns": zone['soa']['data']['mname'],
     }
-    return render_template('zone.html.j2', zone=zone_name, soa=soa, records=records, modal=ZONE_EDIT, modal_api='/api/zone', modal_default_values=current_zone_data)
+    record_types = zf_api.RecordTypeResource()
+    record_types = record_types.get()
+    return render_template('zone.html.j2', zone=zone, records=records, modal=ZONE_EDIT, modal_api='/api/zone', modal_default_values=current_zone_data, record_types=record_types)
 
 api.add_resource(zf_api.StatusResource, '/status')
 api.add_resource(zf_api.ZoneResource, '/zone', '/zone/<string:zone_name>')
 api.add_resource(zf_api.RecordResource, '/zone/<string:zone_name>/record', '/zone/<string:zone_name>/record/<string:record_name>')
+api.add_resource(zf_api.RecordTypeResource, '/types/recordtype', '/types/recordtype/<string:record_type>')

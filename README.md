@@ -18,11 +18,18 @@ ZoneForge simplifies the *management* of RFC1035/BIND-style DNS zone files by pr
 - Deployment flexibility for various environments.
 
 ## Table of Contents
-- [About](#About)
-- [Features](#Features)
-- [Usage](#Usage)
-- [Resources](#Resources)
-- [Credits](#Credits)
+- [About](#about)
+- [Configuration](#configuration)
+- [API Features](#api-features)
+  - [Zones](#zones)
+  - [Records](#records)
+- [Roadmap](#roadmap)
+- [Resources](#resources)
+  - [Zone Files](#zone-files)
+  - [Record Types](#record-types)
+  - [RFCs](#rfcs)
+  - [Migrating Existing DNS to a Zone File](#migrating-existing-dns-to-a-zone-file)
+- [Credits](#credits)
 
 # Configuration
 
@@ -34,6 +41,8 @@ Environment variables are available to configure the application.
 | DEFAULT_ZONE_TTL | 86400 | The default TTL for new zones. |
 
 # API Features
+
+Note that deprecated fields are not supported by ZoneForge.
 
 ## Zones
 
@@ -187,6 +196,10 @@ For each domain that a given DNS server is authorative for:
 
 5. The file `db.example.com` should now contain a RFC1035-compatible zone file.
 
+
+# Contributing
+
+Contributions are welcome. Please follow [conventional commit syntax](https://www.conventionalcommits.org/en/v1.0.0/).
 
 # Credits
 
