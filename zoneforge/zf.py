@@ -2,21 +2,26 @@ import dns.immutable
 import dns.node
 import dns.name
 import dns.rdatatype
+import dns.rdtypes.txtbase
 import dns.zone
 import dns.rdata
 import dns.rdataset
 import dns.rrset
 import dns.versioned
 import dns.transaction
-from dns.rdatatype import *
-import inspect
 from datetime import datetime
 from os import remove
 from os.path import join, exists, basename
 import glob
-import dns.rrset
+import importlib
 from werkzeug.exceptions import *
 from flask import current_app
+from typing import Type
+
+RECORD_FIELDS_TO_RELATIVIZE = [
+    'target',
+    'next', 
+]
 
 ZFZONE_CUSTOM_ATTRS = ['_zone', 'record_count']
 class ZFZone(dns.zone.Zone):
@@ -74,7 +79,8 @@ def get_zones(zone_name: dns.name.Name = None) -> list[ZFZone]:
             zone = dns.zone.from_file(
                 f=zone_file_path,
                 origin=zone_name,
-                zone_factory=dns.versioned.Zone
+                zone_factory=dns.versioned.Zone,
+                relativize=True
             )
             zfzone = ZFZone(zone)
             zones.append(zfzone)
@@ -146,7 +152,7 @@ def get_records(
 def create_record(
         record_name: str,
         record_type: str,
-        record_data: str,
+        record_data: dict,
         zone_name: str = None,
         record_class: dns.rdataclass.RdataClass = "IN",
         record_ttl: int = None,
@@ -157,14 +163,15 @@ def create_record(
     if not zone_name and write:
         raise ValueError('A zone_name must be provided to write to a zone file.')
     if zone_name:
-        zone = get_zones(zone_name)[0]
+        zone = get_zones(zone_name)
+        if not zone:
+            raise NotFound('the specified zone does not exist.')
+        zone = zone[0]
         if zone.get_rdataset(name=record_name, rdtype=record_type):
             raise BadRequest('specified record already exists.')
-    tokenizer_data = f" {record_data}; {record_comment}" if record_comment else record_data
-    new_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=tokenizer_data)
-    if not record_ttl:
-        record_ttl = current_app.config['DEFAULT_ZONE_TTL']
-    new_rrset = dns.rrset.from_rdata(record_name, record_ttl, new_rdata)
+
+    new_rrset = request_to_record(zone_name=zone_name, record_name=record_name, record_type=record_type, record_data=record_data, record_ttl=record_ttl, record_class=record_class, record_comment=record_comment)
+
     if write:
         with zone.writer() as txn:
             txn.add(new_rrset)
@@ -178,15 +185,14 @@ def update_record(
         record_type: str,
         record_data: dict,
         record_class: dns.rdataclass.RdataClass = "IN",
-        record_ttl: int = 86400,
+        record_ttl: int = None,
         record_comment: str = None,
     ) -> dns.rrset.RRset:
     zone = get_zones(zone_name)[0]
     if not zone.get_rdataset(name=record_name, rdtype=record_type):
         raise NotFound('specified record does not exist.')
-    tokenizer_data = _tokenizer_from_params(record_data=record_data, record_comment=record_comment)
-    new_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=tokenizer_data)
-    new_rrset = dns.rrset.from_rdata(record_name, record_ttl, new_rdata)
+    
+    new_rrset = request_to_record(zone_name=zone_name, record_name=record_name, record_type=record_type, record_data=record_data, record_ttl=record_ttl, record_class=record_class, record_comment=record_comment)
 
     with zone.writer() as txn:
         txn.replace(new_rrset)
@@ -198,23 +204,23 @@ def delete_record(
         zone_name: str,
         record_name: str,
         record_type: str,
-        record_data: str,
+        record_data: dict,
+        record_ttl: int,
         record_class: dns.rdataclass.RdataClass = "IN",
     ) -> bool:
     zone = get_zones(zone_name)[0]
 
-    tokenizer_data = _tokenizer_from_params(record_data=record_data)
-    target_rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=tokenizer_data)
+    target_rrset = request_to_record(zone_name=zone_name, record_name=record_name, record_type=record_type, record_data=record_data, record_ttl=record_ttl, record_class=record_class)
     with zone.writer() as txn:
         try:
-            txn.delete_exact(record_name, target_rdata)
+            txn.delete_exact(target_rrset)
             print(f"INFO: Deleted record {record_name} in zone {zone_name}")
         except dns.transaction.DeleteNotExact as e:
             raise NotFound('specified record does not exist.')
     zone.write_to_file()
     return True
 
-#   records cannot currently be created with the same name and type, but different data (i.e. MX records)
+#  TODO records cannot currently be created with the same name and type, but different data (i.e. MX records)
 def record_to_response(records: list[dns.rrset.RRset]) -> dict:
     transformed_records = []
     if isinstance(records, dns.rrset.RRset):
@@ -223,7 +229,6 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
     for rrset in records:
         print(f"DEBUG: transforming records under name {rrset.name}")
         for rdata in rrset.items:
-            # key order inside record.data matters, since some records have multiple data fields and will be tokenized from a string later
             record_type = rrset.rdtype
             record = {
                         "name": str(rrset.name),
@@ -233,13 +238,10 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
                     }
             if getattr(rdata, 'rdcomment', None):
                 record['comment'] = rdata.rdcomment
-            skip_properties = ['rdclass', 'rdtype', 'rdcomment'] # skip these for dynamic data fields since we skip or rename them
-            record_slots = rdata.__getstate__() # could use getallslots, but this seems more appropriate
+            record_slots = get_rdata_class_slots(record_type._name_)
             for slot in record_slots:
-                if slot in skip_properties:
-                    continue
                 property_value = getattr(rdata, slot)
-                if property_value:
+                if property_value != None: # needs to be explicitly checked for None since dns.name.Name for a root record is evaluated to False (len=0)
                     if slot == "strings":
                         txt = ""
                         prefix = ""
@@ -248,16 +250,88 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
                             prefix = " "
                         property_value = txt
                     else:
-                        property_value = str(property_value) #TODO necessary?
+                        if isinstance(property_value, dns.name.Name):
+                            property_value = property_value.to_text()
                 record["data"][slot] = property_value
                     
             transformed_records.append(record)
     return transformed_records
 
-def _tokenizer_from_params(record_data: str = None, record_comment: str = None):
-    tokenizer_data = ''
-    if record_data:
-        tokenizer_data += record_data
+def request_to_record(
+        zone_name: str,
+        record_name: str,
+        record_type: str,
+        record_data: dict,
+        record_class: dns.rdataclass.RdataClass,
+        record_ttl: int = None,
+        record_comment: str = None,
+    ) -> dns.rrset.RRset:
+    rdata_class = _get_rdata_class(record_type)
+    origin = dns.name.from_text(text=zone_name)
+
+    if not record_ttl:
+        record_ttl = current_app.config['DEFAULT_ZONE_TTL']
+
+    # relativize the record data fields that are names
+    for record_field in RECORD_FIELDS_TO_RELATIVIZE:
+        if record_field in record_data:
+            data_name = dns.name.from_text(text=record_data[record_field], origin=origin)
+            record_data[record_field] = data_name.relativize(origin=origin)
+
+    rdata = rdata_class(rdclass=record_class, rdtype=record_type, **record_data)
     if record_comment:
-        tokenizer_data += '; ' + record_comment
-    return tokenizer_data
+        # we can't set the comment via the constructor, so we need to use __getstate__ and __setstate__
+        rdata_dict = rdata.__getstate__()
+        rdata_dict['rdcomment'] = record_comment
+        rdata.__setstate__(rdata_dict)
+
+    rrset = dns.rrset.from_rdata(record_name, record_ttl, rdata)
+    return rrset
+
+def get_record_types_map(record_type_name: str = None):
+    """
+    returns a dict of all record types with their names as keys and their values as data properties
+    """        
+    record_types = {}
+    if record_type_name:
+        record_types[record_type_name] = get_rdata_class_slots(record_type_name)
+    else:
+        for rdtype in dns.rdatatype.RdataType:
+            rdtype_text = dns.rdatatype.to_text(rdtype)
+            slots = get_rdata_class_slots(rdtype_text)
+            # deprecated records have no slots, so we skip them
+            if len(slots) > 0:
+                record_types[rdtype_text] = slots
+        record_types = {k: record_types[k] for k in sorted(record_types)} # sort for user friendliness
+
+    return record_types
+
+def get_rdata_class_slots(rdtype_text: str) -> list[str]: 
+    """Try to get the data-related slots for a given record type."""
+    rdata_class = _get_rdata_class(rdtype_text)
+    all_slots = []
+    if rdata_class:
+        for cls in rdata_class.__mro__:
+            slots = getattr(cls, '__slots__', [])
+            for slot in slots:
+                if slot not in all_slots:
+                    all_slots.append(slot)
+    
+    base_slots = ['rdclass', 'rdtype', 'rdcomment']
+    all_slots = [slot for slot in all_slots if slot not in base_slots]
+    
+    return all_slots
+
+def _get_rdata_class(rdtype_text: str) -> Type[dns.rdata.Rdata]:
+    """
+    dynamically import the rdata class for a given record type
+    """
+    for package in ['ANY', 'IN']:
+        try:
+            module_name = rdtype_text.replace('-', '_')
+            module = importlib.import_module(f'dns.rdtypes.{package}.{module_name}')
+            rdata_class = getattr(module, module_name)
+            return rdata_class
+        except(ImportError):
+            pass
+    return None

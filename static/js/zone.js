@@ -12,16 +12,23 @@ function setButtonsDisplay(row, isEditing) {
 
 // Data extraction helper
 function getRecordDataFromCell(dataCellList) {
-    let returnText = '';
+    let returnDict = {};
     dataCellList.forEach(dataCell => {
+        let data = '';
         const input = dataCell.querySelector('input');
         if (input) {
-            returnText += input.value.trim() + " ";
+            data = input.value.trim();
         } else {
-            returnText += dataCell.textContent.trim() + " ";
+            data = dataCell.textContent.trim();
         }
+
+        let label = dataCell.previousSibling.textContent.trim();
+        // remove the colon, downcase everything
+        label = label.replace(':', '').toLowerCase();
+
+        returnDict[label] = data;
     });
-    return returnText;
+    return returnDict;
 }
 
 // Event handlers
@@ -49,7 +56,20 @@ function startEditing(row) {
         const originalText = cell.textContent.trim();
         cell.setAttribute('data-original', originalText);
         
-        if (cell.getAttribute('data-field') === 'data') {
+        if (cell.getAttribute('data-field') === 'type') {
+            // Create select dropdown for record type
+            const select = document.createElement('select');
+            // Clone the options from the new record row's select
+            const templateSelect = document.querySelector('.new-record [data-field="type"] select');
+            templateSelect.querySelectorAll('option').forEach(option => {
+                const newOption = option.cloneNode(true);
+                select.appendChild(newOption);
+            });
+            // Set the current value
+            select.value = originalText;
+            cell.textContent = '';
+            cell.appendChild(select);
+        } else if (cell.getAttribute('data-field') === 'data') {
             // For data cells, create a new input in the existing structure
             const input = document.createElement('input');
             input.type = 'text';
@@ -57,20 +77,6 @@ function startEditing(row) {
             cell.textContent = '';
             cell.appendChild(input);
             
-            // Add the + button if it's the last data entry
-            const dataEntry = cell.closest('.data-entry');
-            if (dataEntry && !dataEntry.nextElementSibling) {
-                const addButton = document.createElement('button');
-                addButton.type = 'button';
-                addButton.className = 'add-data-row';
-                addButton.textContent = '+';
-                addButton.onclick = (e) => {
-                    e.preventDefault();
-                    const newRow = createDataRowInput();
-                    dataEntry.insertAdjacentElement('afterend', newRow);
-                };
-                dataEntry.appendChild(addButton);
-            }
         } else {
             // For non-data cells, handle as before
             const input = document.createElement('input');
@@ -86,9 +92,29 @@ function startEditing(row) {
 }
 
 function cancelEditing(row) {
-    row.querySelectorAll('.editable').forEach(cell => {
+    // Restore original text content for non-data fields
+    row.querySelectorAll('.editable:not([data-field="data"])').forEach(cell => {
         cell.textContent = cell.getAttribute('data-original');
     });
+    
+    // Restore original data entries
+    row.querySelectorAll('.editable[data-field="data"]').forEach(cell => {
+        const originalText = cell.getAttribute('data-original');
+        if (originalText) {
+            cell.textContent = originalText;
+        }
+    });
+    
+    // Remove any additional data entries that were added during editing
+    const dataRows = row.querySelector('.data-rows');
+    if (dataRows) {
+        dataRows.querySelectorAll('.data-entry').forEach(entry => {
+            if (!entry.querySelector('[data-original]')) {
+                entry.remove();
+            }
+        });
+    }
+    
     setButtonsDisplay(row, false);
 }
 
@@ -100,7 +126,9 @@ async function deleteRecord(row) {
     try {
         const requestBody = Object.fromEntries([
             ['type', row.querySelector('[data-field="type"]').textContent.trim()],
-            ['data', getRecordDataFromCell(row.querySelectorAll('[data-field="data"]'))]
+            ['ttl', row.querySelector('[data-field="ttl"]')?.textContent.trim()],
+            ['data', getRecordDataFromCell(row.querySelectorAll('[data-field="data"]'))],
+            ['comment', row.querySelector('[data-field="comment"]')?.textContent.trim()]
         ].filter(([_, value]) => value));
 
         const response = await fetch(row.getAttribute('data-url'), {
@@ -123,7 +151,7 @@ async function deleteRecord(row) {
 async function saveChanges(row) {
     try {
         const requestBody = Object.fromEntries([
-            ['type', row.querySelector('[data-field="type"] input')?.value.trim()],
+            ['type', row.querySelector('[data-field="type"] select')?.value.trim()],
             ['ttl', row.querySelector('[data-field="ttl"] input')?.value.trim()],
             ['data', getRecordDataFromCell(row.querySelectorAll('[data-field="data"]'))],
             ['comment', row.querySelector('[data-field="comment"] input')?.value.trim()]
@@ -140,8 +168,9 @@ async function saveChanges(row) {
             throw new Error(error.message || `HTTP error! status: ${response.status}`);
         }
 
+        // Update the row with the new values
         row.querySelectorAll('.editable').forEach(cell => {
-            cell.textContent = cell.querySelector('input').value;
+            cell.textContent = cell.querySelector('input,select').value;
         });
         setButtonsDisplay(row, false);
     } catch (error) {
@@ -151,7 +180,7 @@ async function saveChanges(row) {
     }
 }
 
-// Add this new function to handle input keypress events
+// helper function to add an enter key handler to a row
 function addEnterKeyHandler(row, handler) {
     row.querySelectorAll('input').forEach(input => {
         input.addEventListener('keypress', async (e) => {
@@ -163,7 +192,7 @@ function addEnterKeyHandler(row, handler) {
     });
 }
 
-// Add enter key handlers to new record rows
+// Allow Submitting a new record on Enter key press
 document.querySelectorAll('tr.new-record').forEach(row => {
     addEnterKeyHandler(row, createRecord);
 });
@@ -182,7 +211,7 @@ async function createRecord(row) {
         
         const requestBody = Object.fromEntries(
             [
-                ['type', row.querySelector('[data-field="type"] input')?.value.trim()],
+                ['type', row.querySelector('[data-field="type"] select')?.value.trim()],
                 ['ttl', row.querySelector('[data-field="ttl"] input')?.value.trim()],
                 ['data', getRecordDataFromCell(row.querySelectorAll('[data-field="data"]'))],
                 ['comment', row.querySelector('[data-field="comment"] input')?.value.trim()]
@@ -208,7 +237,7 @@ async function createRecord(row) {
     }
 }
 
-// Add this new function to create a data row input
+// helper function to create a new row element for record data fields (e.g. Address, Target, etc)
 function createDataRowInput() {
     const div = document.createElement('div');
     div.className = 'data-entry';
@@ -228,27 +257,78 @@ function createDataRowInput() {
     pData.setAttribute('data-field', 'data');
     pData.appendChild(input);
     
-    const removeButton = document.createElement('button');
-    removeButton.type = 'button';
-    removeButton.className = 'remove-data-row';
-    removeButton.textContent = '−';
-    removeButton.onclick = (e) => {
-        e.preventDefault();
-        div.remove();
-    };
-    
     div.appendChild(pLabel);
     div.appendChild(pData);
-    div.appendChild(removeButton);
     return div;
 }
 
-// Add click handler for add-data-row buttons
-document.querySelectorAll('.add-data-row').forEach(button => {
-    button.addEventListener('click', (e) => {
-        e.preventDefault();
-        const currentDataEntry = button.parentElement;
-        const newRow = createDataRowInput();
-        currentDataEntry.insertAdjacentElement('afterend', newRow);
-    });
+// helper function to format a labels generically (e.g. address_name -> Address Name)
+function formatLabel(label) {
+    return label
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+}
+
+async function updateDataFieldsForType(typeSelect) {
+    const selectedType = typeSelect.value;
+    const row = typeSelect.closest('tr');
+    const dataRows = row.querySelector('.data-rows');
+    const existingEntries = dataRows.querySelectorAll('.data-entry');
+
+    try {
+        const response = await fetch(`/api/types/recordtype/${selectedType}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const recordTypeData = await response.json();
+        const fieldLabels = recordTypeData[selectedType] || [];
+        
+        // Remove any non-primary empty rows
+        existingEntries.forEach((entry, index) => {
+            if (index > 0) { // Skip the first/primary row
+                const input = entry.querySelector('input');
+                if (input && !input.value.trim()) {
+                    entry.remove();
+                }
+            }
+        });
+
+        // Get fresh list of entries after removal
+        const remainingEntries = dataRows.querySelectorAll('.data-entry');
+        
+        // Update labels for remaining entries
+        remainingEntries.forEach((entry, index) => {
+            const label = entry.querySelector('.data-row-label');
+            const fieldLabel = fieldLabels[index] || '';
+            if (fieldLabel) {
+                const formattedLabel = formatLabel(fieldLabel);
+                label.textContent = formattedLabel + ':';
+            } else {
+                label.textContent = '';
+            }
+        });
+
+        // Add new rows if we need more
+        for (let i = remainingEntries.length; i < fieldLabels.length; i++) {
+            const newRow = createDataRowInput();
+            const label = newRow.querySelector('.data-row-label');
+            const fieldLabel = fieldLabels[i];
+            const formattedLabel = formatLabel(fieldLabel);
+            label.textContent = formattedLabel + ':';
+            dataRows.appendChild(newRow);
+        }
+
+    } catch (error) {
+        console.error('Error fetching record type data:', error);
+    }
+}
+
+// Add event listeners for record type selectors
+document.querySelectorAll('[data-field="type"] select').forEach(select => {
+    select.addEventListener('change', () => updateDataFieldsForType(select));
+});
+// run once on page load for the new record row
+document.querySelectorAll('.new-record select').forEach(select => {
+    updateDataFieldsForType(select);
 });

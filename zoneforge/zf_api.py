@@ -1,6 +1,5 @@
-from flask import redirect, url_for, current_app
 from flask_restx import Resource, reqparse
-from zoneforge.zf import get_zones, create_zone, delete_zone, get_records, create_record, update_record, delete_record, record_to_response
+from zoneforge.zf import get_zones, create_zone, delete_zone, get_records, create_record, update_record, delete_record, record_to_response, get_record_types_map
 from werkzeug.exceptions import *
 import dns.name
 
@@ -11,7 +10,7 @@ record_parser = reqparse.RequestParser()
 record_parser.add_argument('name', type=str, help='Name of the DNS record', required=False)
 record_parser.add_argument('ttl', type=str, help='TTL of the DNS record', required=False)
 record_parser.add_argument('type', type=str, help='Type of DNS Record', required=False)
-record_parser.add_argument('data', type=str, help='RData of the DNS Record', required=False)
+record_parser.add_argument('data', type=dict, help='RData of the DNS Record', required=False)
 
 class StatusResource(Resource):
     def get(self):
@@ -150,7 +149,7 @@ class RecordResource(Resource):
     def post(self, zone_name: str, record_name: str = None):
         parser = record_parser.copy()
         parser.replace_argument('type', type=str, help='Type of DNS Record', required=True)
-        parser.add_argument('data', type=str, help='RData for the DNS Record', required=True)
+        parser.add_argument('data', type=dict, help='RData for the DNS Record', required=True)
         parser.add_argument('comment', type=str, help='Comment for the DNS Record', required=False)
         args = parser.parse_args()
         if not record_name:
@@ -165,7 +164,7 @@ class RecordResource(Resource):
     def put(self, zone_name: str, record_name: str = None):
         parser = record_parser.copy()
         parser.replace_argument('type', type=str, help='Type of DNS Record', required=True)
-        parser.add_argument('data', type=str, help='RData for the DNS Record', required=True)
+        parser.add_argument('data', type=dict, help='RData for the DNS Record', required=True)
         parser.add_argument('comment', type=str, help='Comment for the DNS Record', required=False)
         args = parser.parse_args()
         if not record_name:
@@ -180,11 +179,17 @@ class RecordResource(Resource):
     def delete(self, zone_name, record_name):
         parser = record_parser.copy()
         parser.replace_argument('type', type=str, help='Type of DNS Record', required=True)
-        parser.replace_argument('data', type=str, help='RData of the DNS Record', required=True)
+        parser.replace_argument('data', type=dict, help='RData of the DNS Record', required=True)
+        parser.replace_argument('ttl', type=str, help='TTL of the DNS Record', required=True)
         args = parser.parse_args()
         if not record_name:
             record_name = args.get("name")
             if not record_name:
                 raise BadRequest("A record name must be specified with either a URL path of '/zone/[zone_name]/record[record_name]' or with the 'name' parameter")
-        delete_record(zone_name=zone_name, record_name=record_name, record_type=args['type'], record_data=args['data'])
+        delete_record(zone_name=zone_name, record_name=record_name, record_type=args['type'], record_data=args['data'], record_ttl=args['ttl'])
         return {}
+
+class RecordTypeResource(Resource):
+    def get(self, record_type: str = None):
+        record_types = get_record_types_map(record_type)
+        return record_types
