@@ -160,9 +160,10 @@ def create_record(
         write: bool = True,
     ) -> dns.rrset.RRset:
 
-    if not zone_name and write:
-        raise ValueError('A zone_name must be provided to write to a zone file.')
-    if zone_name:
+    # perform validation only when we're writing to disk. creating a new zone requires we have the record objects first.
+    if write:
+        if not zone_name:
+            raise ValueError('A zone_name must be provided to write to a zone file.')
         zone = get_zones(zone_name)
         if not zone:
             raise NotFound('the specified zone does not exist.')
