@@ -1,4 +1,6 @@
 {% extends 'layout.html.j2' %}
+{% set sort_up_icon = "&#x25b4;"%}
+{% set sort_down_icon = "&#x25be;"%}
 {% block content %}
     <div class="manager">
         <div class="header-row">
@@ -27,17 +29,67 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Select</th>
-                        <th>Record Name</th>
-                        <th>Record Type</th>
-                        <th>TTL</th>
-                        <th>Data</th>
-                        <th>Comment</th>
-                        <th>Manage</th>
+                        <th>
+                            <a>Select</a>
+                        </th>
+                        <th>
+                            <a href="{{  url_for('zone', zone_name=zone.name, sort='name' ) }}" >Record Name</a>
+                            {% if record_sort == 'name' %}
+                            <span class="sort-order">
+                                {% if record_sort_order == "asc" %}
+                                <a href="{{ url_for('zone', zone_name=zone.name, sort='name', sort_order='desc' ) }}"> {{ sort_up_icon }} </a>
+                                {% elif record_sort_order == "desc"%}
+                                <a href="{{ url_for('zone', zone_name=zone.name, sort='name', sort_order='asc' ) }}"> {{ sort_down_icon }} </a>
+                                {% endif %}
+                            </span>
+                            {% endif %}
+                        </th>
+                        <th>
+                            <a href="{{  url_for('zone', zone_name=zone.name, sort='type' ) }}" >Record Type</a>
+                            {% if record_sort == 'type' %}
+                            <span class="sort-order">
+                                {% if record_sort_order == "asc" %}
+                                <a href="{{ url_for('zone', zone_name=zone.name, sort='type', sort_order='desc' ) }}"> {{ sort_up_icon }} </a>
+                                {% elif record_sort_order == "desc"%}
+                                <a href="{{ url_for('zone', zone_name=zone.name, sort='type', sort_order='asc' ) }}"> {{ sort_down_icon }} </a>
+                                {% endif %}
+                            </span>
+                            {% endif %}
+                        </th>
+                        <th>
+                            <a href="{{  url_for('zone', zone_name=zone.name, sort='ttl' ) }}" >TTL</a>
+                            {% if record_sort == 'ttl' %}
+                            <span class="sort-order">
+                                {% if record_sort_order == "asc" %}
+                                <a href="{{ url_for('zone', zone_name=zone.name, sort='ttl', sort_order='desc' ) }}"> {{ sort_up_icon }} </a>
+                                {% elif record_sort_order == "desc"%}
+                                <a href="{{ url_for('zone', zone_name=zone.name, sort='ttl', sort_order='asc' ) }}"> {{ sort_down_icon }} </a>
+                                {% endif %}
+                            </span>
+                            {% endif %}
+                        </th>
+                        <th>
+                            <a>Data</a>
+                        </th>
+                        <th>
+                            <a href="{{  url_for('zone', zone_name=zone.name, sort='comment' ) }}" >Comment</a>
+                            {% if record_sort == 'comment' %}
+                            <span class="sort-order">
+                                {% if record_sort_order == "asc" %}
+                                <a href="{{ url_for('zone', zone_name=zone.name, sort='comment', sort_order='desc' ) }}"> {{ sort_up_icon }} </a>
+                                {% elif record_sort_order == "desc"%}
+                                <a href="{{ url_for('zone', zone_name=zone.name, sort='comment', sort_order='asc' ) }}"> {{ sort_down_icon }} </a>
+                                {% endif %}
+                            </span>
+                            {% endif %}
+                        </th>
+                        <th>
+                            <a>Manage</a>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for record in records %}
+                    {% for record in records | sort(attribute=record_sort, reverse=(record_sort_order=='asc') ) %}
                     {% set record_url_path = url_for("record_resource", **{"record_name": record.name, "zone_name": zone.name}) %}
                     <tr data-record-name="{{ record.name }}" data-url="{{ record_url_path }}">
                         <td><input type="checkbox"></td>

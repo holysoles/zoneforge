@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from flask_restx import Api
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_minify import minify
@@ -48,7 +48,9 @@ def zone(zone_name):
     }
     record_types = zf_api.RecordTypeResource()
     record_types = record_types.get()
-    return render_template('zone.html.j2', zone=zone, records=records, modal=ZONE_EDIT, modal_api='/api/zone', modal_default_values=current_zone_data, record_types=record_types)
+    user_sort = request.args.get("sort", "name")
+    user_sort_order = request.args.get("sort_order", "desc")
+    return render_template('zone.html.j2', zone=zone, modal=ZONE_EDIT, modal_default_values=current_zone_data, records=records, record_types=record_types, record_sort=user_sort, record_sort_order=user_sort_order)
 
 api.add_resource(zf_api.StatusResource, '/status')
 api.add_resource(zf_api.ZoneResource, '/zone', '/zone/<string:zone_name>')

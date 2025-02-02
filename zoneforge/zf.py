@@ -239,6 +239,8 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
                     }
             if getattr(rdata, 'rdcomment', None):
                 record['comment'] = rdata.rdcomment
+            else:
+                record['comment'] = ""
             record_slots = get_rdata_class_slots(record_type._name_)
             for slot in record_slots:
                 property_value = getattr(rdata, slot)
