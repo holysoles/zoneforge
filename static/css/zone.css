@@ -20,6 +20,15 @@ th {
     font-weight: bold;
 }
 
+th a {
+    text-decoration: none;
+    color: inherit;
+}
+
+th .sort-order {
+    float: right;
+}
+
 tr:nth-child(even) { background-color: #f9f9f9; }
 tr:hover { background-color: #f1f1f1; }
 
@@ -125,7 +134,7 @@ td:nth-child(7) { width: 17%; min-width: 160px; } /* Actions */
 .data-rows {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.1rem;
 }
 
 .data-entry {
