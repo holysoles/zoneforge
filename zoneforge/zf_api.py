@@ -66,11 +66,29 @@ class ZoneResource(Resource):
         # prepare required initial zone data
         primary_ns = args['primary_ns']
         admin_email = args['admin_email'].replace('@', '.')
-        soa_rrset = create_record(record_name="@", record_type="SOA", record_data=f"{primary_ns} {admin_email} 0 {args['refresh']} {args['retry']} {args['expire']} {args['minimum']}", record_ttl=args['soa_ttl'] , write=False)
-        primary_ns_rrset = create_record(record_name='@', record_type='NS', record_data=f"{primary_ns}", record_ttl=args['primary_ns_ttl'], write=False)
+        soa_record_data = {
+            "mname": primary_ns,
+            "rname": admin_email,
+            "serial": 0, # will be handled on zone write to disk
+            "refresh": args['refresh'],
+            "retry": args['retry'],
+            "expire": args['expire'],
+            "minimum": args['minimum']
+        }
+        soa_rrset = create_record(zone_name=zone_name, record_name="@", record_type="SOA", record_data=soa_record_data, record_ttl=args['soa_ttl'] , write=False)
+        primary_ns_record_data = {
+            "target": primary_ns,
+        }
+        primary_ns_rrset = create_record(zone_name=zone_name, record_name='@', record_type='NS', record_data=primary_ns_record_data, record_ttl=args['primary_ns_ttl'], write=False)
 
         make_primary_ns_a_record = args.get('primary_ns_ip') and args.get('primary_ns_a_ttl')
-        primary_ns_a_rrset = create_record(record_name=f"{primary_ns}", record_type='A', record_data=f"{args['primary_ns_ip']}", record_ttl=args['primary_ns_a_ttl'], write=False) if make_primary_ns_a_record else None
+        if make_primary_ns_a_record:
+            primary_ns_a_record_data = {
+                "address": args['primary_ns_ip']
+            }
+            primary_ns_a_rrset = create_record(zone_name=zone_name, record_name=f"{primary_ns}", record_type='A', record_data=primary_ns_a_record_data, record_ttl=args['primary_ns_a_ttl'], write=False)
+        else:
+            primary_ns_a_rrset = None
 
         new_zone = create_zone(dns_name, soa_rrset, primary_ns_rrset, primary_ns_a_rrset)
         new_zone_response = new_zone.to_response()
@@ -101,7 +119,16 @@ class ZoneResource(Resource):
         # update SOA record
         primary_ns = args['primary_ns']
         admin_email = args['admin_email'].replace('@', '.')
-        _ = update_record(zone_name=zone_name, record_name="@", record_type="SOA", record_data=f"{primary_ns} {admin_email} 0 {args['refresh']} {args['retry']} {args['expire']} {args['minimum']}", record_ttl=args['soa_ttl'])
+        soa_record_data = {
+            "mname": primary_ns,
+            "rname": admin_email,
+            "serial": 0, # will be handled on zone write to disk
+            "refresh": args['refresh'],
+            "retry": args['retry'],
+            "expire": args['expire'],
+            "minimum": args['minimum']
+        }
+        _ = update_record(zone_name=zone_name, record_name="@", record_type="SOA", record_data=soa_record_data, record_ttl=args['soa_ttl'])
 
         update_zone = get_zones(dns_name)
         update_zone_response = update_zone[0].to_response()
