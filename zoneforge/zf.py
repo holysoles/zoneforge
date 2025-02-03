@@ -20,7 +20,8 @@ from typing import Type
 
 RECORD_FIELDS_TO_RELATIVIZE = [
     'target',
-    'next', 
+    'next',
+    'exchange',
 ]
 
 ZFZONE_CUSTOM_ATTRS = ['_zone', 'record_count']
@@ -269,7 +270,6 @@ def request_to_record(
         record_ttl: int = None,
         record_comment: str = None,
     ) -> dns.rrset.RRset:
-    rdata_class = _get_rdata_class(record_type)
     origin = dns.name.from_text(text=zone_name)
 
     if not record_ttl:
@@ -281,7 +281,14 @@ def request_to_record(
             data_name = dns.name.from_text(text=record_data[record_field], origin=origin)
             record_data[record_field] = data_name.relativize(origin=origin)
 
-    rdata = rdata_class(rdclass=record_class, rdtype=record_type, **record_data)
+    # construct rdata class values from string in the proper order. We could pass these to a constructor as kwargs, but we don't currently have client side rdata slot typing
+    # rdata_class = _get_rdata_class(record_type)
+    # rdata = rdata_class(rdclass=record_class, rdtype=record_type, **record_data)
+    rdata_str = ""
+    for rdata_slot in get_rdata_class_slots(record_type):
+        rdata_str += f"{record_data[rdata_slot]} "
+    rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=rdata_str)
+
     if record_comment:
         # we can't set the comment via the constructor, so we need to use __getstate__ and __setstate__
         rdata_dict = rdata.__getstate__()
@@ -293,7 +300,7 @@ def request_to_record(
 
 def get_record_types_map(record_type_name: str = None):
     """
-    returns a dict of all record types with their names as keys and their values as data properties
+    returns a dict of all record types with their names as keys, their attributes as subkeys, and the attributes typing as a subkey
     """        
     record_types = {}
     if record_type_name:
@@ -302,7 +309,7 @@ def get_record_types_map(record_type_name: str = None):
         for rdtype in dns.rdatatype.RdataType:
             rdtype_text = dns.rdatatype.to_text(rdtype)
             slots = get_rdata_class_slots(rdtype_text)
-            # deprecated records have no slots, so we skip them
+            # deprecated record types have no slots, so we skip them
             if len(slots) > 0:
                 record_types[rdtype_text] = slots
         record_types = {k: record_types[k] for k in sorted(record_types)} # sort for user friendliness
