@@ -13,6 +13,7 @@ from datetime import datetime
 from os import remove
 from os.path import join, exists, basename
 import glob
+import re
 import importlib
 from werkzeug.exceptions import *
 from flask import current_app
@@ -245,6 +246,7 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
             record_slots = get_rdata_class_slots(record_type._name_)
             for slot in record_slots:
                 property_value = getattr(rdata, slot)
+                # perform any necessary transformations
                 if property_value != None: # needs to be explicitly checked for None since dns.name.Name for a root record is evaluated to False (len=0)
                     if slot == "strings":
                         txt = ""
@@ -253,9 +255,14 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
                             txt += f'{prefix}{dns.rdata._escapify(s)}'
                             prefix = " "
                         property_value = txt
-                    else:
-                        if isinstance(property_value, dns.name.Name):
-                            property_value = property_value.to_text()
+                    if isinstance(property_value, dns.name.Name):
+                        property_value = property_value.to_text()
+                    if slot == 'rname':
+                        email_not_relative = len(property_value.split('.')) > 1
+                        if email_not_relative:
+                            email_with_address = re.sub(r'(?<=[^\\])\.(?=(.*\.).*)', '@', property_value)
+                            email_proper = re.sub(r'\\\.', '.', email_with_address)
+                            property_value = email_proper
                 record["data"][slot] = property_value
                     
             transformed_records.append(record)
@@ -345,3 +352,9 @@ def _get_rdata_class(rdtype_text: str) -> Type[dns.rdata.Rdata]:
         except(ImportError):
             pass
     return None
+
+def friendly_email_to_zone_format(email_address: str) -> str:
+    email_parts = email_address.split('@')
+    email_username = email_parts[0].replace('.', '\.') # need to escape username periods for zonefile
+    email_domain = email_parts[1]
+    return f"{email_username}.{email_domain}"
