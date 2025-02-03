@@ -1,5 +1,5 @@
 from flask_restx import Resource, reqparse
-from zoneforge.zf import get_zones, create_zone, delete_zone, get_records, create_record, update_record, delete_record, record_to_response, get_record_types_map
+from zoneforge.zf import get_zones, create_zone, delete_zone, get_records, create_record, update_record, delete_record, record_to_response, get_record_types_map, friendly_email_to_zone_format
 from werkzeug.exceptions import *
 import dns.name
 
@@ -65,7 +65,7 @@ class ZoneResource(Resource):
         
         # prepare required initial zone data
         primary_ns = args['primary_ns']
-        admin_email = args['admin_email'].replace('@', '.')
+        admin_email = friendly_email_to_zone_format(args['admin_email'])
         soa_record_data = {
             "mname": primary_ns,
             "rname": admin_email,
@@ -118,7 +118,7 @@ class ZoneResource(Resource):
         
         # update SOA record
         primary_ns = args['primary_ns']
-        admin_email = args['admin_email'].replace('@', '.')
+        admin_email = friendly_email_to_zone_format(args['admin_email'])
         soa_record_data = {
             "mname": primary_ns,
             "rname": admin_email,
