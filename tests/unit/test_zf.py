@@ -1,5 +1,3 @@
-import pytest
-from flask import current_app, Flask
 from zoneforge.zf import ZFZone
 import dns.zone
 import os.path
@@ -39,15 +37,36 @@ def test_zfzone_write_to_disk(app):
     """
     GIVEN a zfzone object
     WHEN given an existing zone to update
-    THEN check that it can be written to disk successfully, and the update persists
+    THEN check that it can be written to disk successfully to the expected location, and writing to disk is idempotent
     """
     new_zone = dns.zone.from_text(text=ZONE_DATA_LIGHT)
     new_zf_zone = ZFZone(new_zone)
-    tmp_zone_folder = tmp_path
-    with current_app.app_context():
-         # default filepath uses env var from app context
-        new_zf_zone.write_to_file(folder=tmp_zone_folder)
-    expected_filepath = os.path.join(tmp_zone_folder, new_zone.origin)
+    new_zone_name = f"{str(new_zone.origin)}zone"
+    with app.app_context():
+        new_zf_zone.write_to_file()
+    folder_path = os.environ.get('ZONE_FILE_FOLDER')
+
+    expected_filepath = os.path.join(folder_path, new_zone_name)
+    assert os.path.exists(expected_filepath)
+
     zone_written = dns.zone.from_file(expected_filepath)
-    zone_written
-    #TODO test loading
+    assert zone_written == new_zone
+
+def test_zfzone_get_records():
+    """
+    GIVEN a zfzone object
+    WHEN records are present
+    THEN check it can enumerate its records, and can be filtered by type
+    """
+    new_zone = dns.zone.from_text(text=ZONE_DATA_LIGHT)
+    new_zf_zone = ZFZone(new_zone)
+    assert len(new_zf_zone.get_all_records()) == 1
+    assert len(new_zf_zone.get_all_records(include_soa=True)) == 2
+    assert len(new_zf_zone.get_all_records(record_type='A')) == 0
+
+#TODO test get_zones()
+
+# TODO test create_zone()
+
+# TODO test delete_zone()
+

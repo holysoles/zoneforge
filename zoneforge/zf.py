@@ -51,15 +51,16 @@ class ZFZone(dns.zone.Zone):
         repr['soa'] = record_to_response(soa)[0]
         return repr
 
-    def write_to_file(self, folder=current_app.config['ZONE_FILE_FOLDER']):
+    def write_to_file(self):
         update_timestamp = int(datetime.now().strftime("%Y%m%d"))
+        zone_name = str(self.origin)
         with self.writer() as txn:
             txn.update_serial(value=update_timestamp, relative=False)
-        zone_file_path = join(folder, f"{self.origin}zone")
+        zone_file_path = join(current_app.config['ZONE_FILE_FOLDER'], f"{zone_name}zone")
         print(f"DEBUG: Writing zone {self.origin} to '{zone_file_path}'")
         self.to_file(f=zone_file_path, want_comments=True, want_origin=True)
     
-    def get_all_records(self, record_type=None, include_soa=False):
+    def get_all_records(self, record_type: str = None, include_soa: bool = False):
         record_type = dns.rdatatype.from_text(record_type) if record_type else dns.rdatatype.from_text('ANY')
         all_records_gen = self.iterate_rdatasets(rdtype=record_type)
         all_records = [
