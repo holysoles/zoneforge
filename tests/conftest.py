@@ -79,3 +79,15 @@ www2 86400 IN A 192.168.10.20
     new_zf_zone = ZFZone(new_zone)
     
     yield new_zf_zone
+
+@pytest.fixture()
+def client_new(app_new):
+    return app_new.test_client()
+
+@pytest.fixture()
+def client_single_zone(app_with_single_zone):
+    return app_with_single_zone.test_client()
+
+@pytest.fixture()
+def client_multi_zone(app_with_multi_zone):
+    return app_with_multi_zone.test_client()
