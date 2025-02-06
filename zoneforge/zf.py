@@ -32,7 +32,7 @@ class ZFZone(dns.zone.Zone):
     """
     def __init__(self, zone: dns.zone.Zone):
         self._zone = zone  # Store the original zone instance
-        self.record_count = len(zone.nodes)
+        self.record_count = len(self.get_all_records())
 
     def __getattr__(self, name):
         return getattr(self._zone, name)
@@ -53,11 +53,25 @@ class ZFZone(dns.zone.Zone):
 
     def write_to_file(self):
         update_timestamp = int(datetime.now().strftime("%Y%m%d"))
+        zone_name = str(self.origin)
         with self.writer() as txn:
             txn.update_serial(value=update_timestamp, relative=False)
-        zone_file_path = join(current_app.config['ZONE_FILE_FOLDER'], f"{self.origin}zone")
+        zone_file_path = join(current_app.config['ZONE_FILE_FOLDER'], f"{zone_name}zone")
+
         print(f"DEBUG: Writing zone {self.origin} to '{zone_file_path}'")
         self.to_file(f=zone_file_path, want_comments=True, want_origin=True)
+        self.record_count = len(self.get_all_records())
+    
+    def get_all_records(self, record_type: str = None, include_soa: bool = False):
+        include_soa = include_soa or record_type == "SOA"
+        record_type = dns.rdatatype.from_text(record_type) if record_type else dns.rdatatype.from_text('ANY')
+        all_records_gen = self.iterate_rdatasets(rdtype=record_type)
+        all_records = [
+            dns.rrset.from_rdata_list(record[0], ttl=record[1].ttl, rdatas=record[1].items) 
+            for record in all_records_gen
+            if include_soa or record[1].rdtype != dns.rdatatype.SOA
+        ]
+        return list(all_records)
 
 def get_zones(zone_name: dns.name.Name = None) -> list[ZFZone]:
     zonefile_map = {}
@@ -78,7 +92,7 @@ def get_zones(zone_name: dns.name.Name = None) -> list[ZFZone]:
         if not exists(zone_file_path):
             continue
         try:
-            zone = dns.zone.from_file(
+            zone = dns.zone.from_file( #TODO see if we can make this a class method for ZFZone
                 f=zone_file_path,
                 origin=zone_name,
                 zone_factory=dns.versioned.Zone,
@@ -116,6 +130,7 @@ def create_zone(
 def delete_zone(zone_name: dns.name.Name) -> bool:
     zone_file_name = join(current_app.config['ZONE_FILE_FOLDER'], f"{zone_name}zone")
     if exists(zone_file_name):
+        print(f"INFO: Removing zone {zone_name}")
         remove(zone_file_name)
         return True
     return False
@@ -129,33 +144,32 @@ def get_records(
     zone = get_zones(zone_name)
     if not zone:
         raise NotFound('the specified zone does not exist.')
-    zone = zone[0]
+    zone = ZFZone(zone[0])
 
     if record_name:
-        matching_node = zone[record_name].rdatasets
+        try:
+            matching_node = zone[record_name].rdatasets
+        except KeyError:
+            raise NotFound
 
         if record_type:
             record_type = dns.rdatatype.from_text(record_type)
             matching_records = [dns.rrset.from_rdata_list(record_name, ttl=record.ttl, rdatas=record.items) for record in matching_node if record.rdtype == record_type]
         else:
             matching_records = [dns.rrset.from_rdata_list(record_name, ttl=record.ttl, rdatas=record.items) for record in matching_node]
+        
+        if not matching_records:
+            raise NotFound
         return matching_records
     else:
-        record_type = dns.rdatatype.from_text(record_type) if record_type else dns.rdatatype.from_text('ANY')
-        all_records_gen = zone.iterate_rdatasets(rdtype=record_type)
-        all_records = [
-            dns.rrset.from_rdata_list(record[0], ttl=record[1].ttl, rdatas=record[1].items) 
-            for record in all_records_gen
-            if include_soa or record[1].rdtype != dns.rdatatype.SOA
-        ]
-
-        return list(all_records)
+        all_records = zone.get_all_records(record_type=record_type, include_soa=include_soa)
+        return all_records
 
 def create_record(
         record_name: str,
         record_type: str,
         record_data: dict,
-        zone_name: str = None,
+        zone_name: dns.name.Name = None,
         record_class: dns.rdataclass.RdataClass = "IN",
         record_ttl: int = None,
         record_comment: str = None,
@@ -355,6 +369,6 @@ def _get_rdata_class(rdtype_text: str) -> Type[dns.rdata.Rdata]:
 
 def friendly_email_to_zone_format(email_address: str) -> str:
     email_parts = email_address.split('@')
-    email_username = email_parts[0].replace('.', '\.') # need to escape username periods for zonefile
+    email_username = email_parts[0].replace('.', '\\.') # need to escape username periods for zonefile
     email_domain = email_parts[1]
     return f"{email_username}.{email_domain}"
