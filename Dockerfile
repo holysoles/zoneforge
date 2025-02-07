@@ -7,6 +7,7 @@ COPY static/ ./static/
 COPY lib/examples/ ./lib/examples
 COPY templates/ ./templates/
 COPY zoneforge/ ./zoneforge/
+COPY db/ ./db/
 COPY app.py requirements.txt  ./
 
 # create non-root user
