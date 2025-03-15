@@ -16,6 +16,7 @@ USER appuser
 # Upgrade pip and install Python dependencies
 RUN pip3 install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
+ENV CONTAINER="true"
 ENV PORT=5000
 ENV GUNICORN_WORKERS=4
 ENV GUNICORN_CMD_ARGS="--bind 0.0.0.0:${PORT} --workers ${GUNICORN_WORKERS}"

@@ -33,7 +33,6 @@ class ZoneResource(Resource):
             raise NotFound('A zone with that name does not exist.')
         else:
             for zone in zones:
-                print(f"DEBUG: transforming zone ${zone}")
                 zones_response.append(zone.to_response())
         
         if zone_name:
@@ -151,7 +150,6 @@ class ZoneResource(Resource):
 
 class RecordResource(Resource):
     def get(self, zone_name: str, record_name: str = None, record_type: str = None):
-        print(request)
         args = record_parser.parse_args()
         if not record_name:
             record_name = args.get("name")
