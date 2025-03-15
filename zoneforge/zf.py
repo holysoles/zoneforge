@@ -15,6 +15,7 @@ from os.path import join, exists, basename
 import glob
 import re
 import importlib
+import logging
 from werkzeug.exceptions import *
 from flask import current_app
 from typing import Type
@@ -24,8 +25,11 @@ RECORD_FIELDS_TO_RELATIVIZE = [
     'next',
     'exchange',
 ]
-
 ZFZONE_CUSTOM_ATTRS = ['_zone', 'record_count']
+
+# Assume we have a logger setup for us already
+logger = logging.getLogger()
+
 class ZFZone(dns.zone.Zone):
     """
     Extends the dnspython library's Zone class to provide additional handling
@@ -58,7 +62,7 @@ class ZFZone(dns.zone.Zone):
             txn.update_serial(value=update_timestamp, relative=False)
         zone_file_path = join(current_app.config['ZONE_FILE_FOLDER'], f"{zone_name}zone")
 
-        print(f"DEBUG: Writing zone {self.origin} to '{zone_file_path}'")
+        logger.debug(f"Writing zone {self.origin} to '{zone_file_path}'")
         self.to_file(f=zone_file_path, want_comments=True, want_origin=True)
         self.record_count = len(self.get_all_records())
     
@@ -77,7 +81,7 @@ def get_zones(zone_name: dns.name.Name = None) -> list[ZFZone]:
     zonefile_map = {}
     zones = []
     if zone_name:
-        print("Getting zone object for origin", zone_name)
+        logger.debug(f"Getting zone object for origin '{zone_name}'")
         zonefile_map[zone_name] = join(current_app.config['ZONE_FILE_FOLDER'], f"{zone_name}zone")
     else:
         zonefile_pattern = join(current_app.config['ZONE_FILE_FOLDER'], "*zone")
@@ -101,8 +105,7 @@ def get_zones(zone_name: dns.name.Name = None) -> list[ZFZone]:
             zfzone = ZFZone(zone)
             zones.append(zfzone)
         except Exception as e:
-            print (f"ERROR: exception loading zone file '{zone_file_path}' ", e.__class__, e)
-            raise InternalServerError
+            raise InternalServerError(f"ERROR: exception loading zone file '{zone_file_path}': {e.__class__} {e}")
     return zones
 
 def create_zone(
@@ -130,7 +133,7 @@ def create_zone(
 def delete_zone(zone_name: dns.name.Name) -> bool:
     zone_file_name = join(current_app.config['ZONE_FILE_FOLDER'], f"{zone_name}zone")
     if exists(zone_file_name):
-        print(f"INFO: Removing zone {zone_name}")
+        logger.info(f"Removing zone {zone_name}")
         remove(zone_file_name)
         return True
     return False
@@ -192,7 +195,7 @@ def create_record(
     if write:
         with zone.writer() as txn:
             txn.add(new_rrset)
-        print(f"INFO: Created record {record_name} in zone {zone_name} with data '{record_data}'")
+        logger.info(f"Created record {record_name} in zone {zone_name} with data '{record_data}'")
         zone.write_to_file()
     return new_rrset
 
@@ -213,7 +216,7 @@ def update_record(
 
     with zone.writer() as txn:
         txn.replace(new_rrset)
-    print(f"INFO: Updated record {record_name} in zone {zone_name} with data '{record_data}'")
+    logger.info(f"Updated record {record_name} in zone {zone_name} with data '{record_data}'")
     zone.write_to_file()
     return new_rrset
 
@@ -231,7 +234,7 @@ def delete_record(
     with zone.writer() as txn:
         try:
             txn.delete_exact(target_rrset)
-            print(f"INFO: Deleted record {record_name} in zone {zone_name}")
+            logger.info(f"Deleted record {record_name} in zone {zone_name}")
         except dns.transaction.DeleteNotExact as e:
             raise NotFound('specified record does not exist.')
     zone.write_to_file()
@@ -244,7 +247,7 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
         records = [records]
 
     for rrset in records:
-        print(f"DEBUG: transforming records under name {rrset.name}")
+        logger.debug(f"transforming records under name {rrset.name}")
         for rdata in rrset.items:
             record_type = rrset.rdtype
             record = {

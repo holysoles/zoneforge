@@ -5,12 +5,22 @@ from flask_minify import minify
 import zoneforge.zf_api as zf_api
 from zoneforge.modal_data import *
 import os
+import logging
+import sys
 
 def create_app():
     # Flask App setup
     app = Flask(__name__, static_folder='static', static_url_path='')
 
     # Configuration with environment variables and defaults
+    log_config = {}
+    log_config['level'] = os.environ.get('LOG_LEVEL', 'DEBUG').upper()
+    log_config['format'] = "%(levelname)s [%(filename)-s%(funcName)s():%(lineno)s]: %(message)s"
+    if not os.environ.get('CONTAINER', False):
+        log_config['format'] = f"[%(asctime)s] {log_config['format']}"
+    log_config['handlers'] = [logging.StreamHandler(sys.stdout)]
+    logging.basicConfig(**log_config)
+
     app.config['ZONE_FILE_FOLDER'] = os.environ.get('ZONE_FILE_FOLDER', './lib/examples')
     app.config['DEFAULT_ZONE_TTL'] = int(os.environ.get('DEFAULT_ZONE_TTL', '86400'))
 
