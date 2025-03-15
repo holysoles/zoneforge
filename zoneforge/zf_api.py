@@ -1,4 +1,5 @@
 from flask_restx import Resource, reqparse
+from flask import request
 from zoneforge.zf import get_zones, create_zone, delete_zone, get_records, create_record, update_record, delete_record, record_to_response, get_record_types_map, friendly_email_to_zone_format
 from werkzeug.exceptions import *
 import dns.name
@@ -28,7 +29,7 @@ class ZoneResource(Resource):
         else:
             dns_name = None
         zones = get_zones(dns_name)
-        if not zones:
+        if not zones and zone_name:
             raise NotFound('A zone with that name does not exist.')
         else:
             for zone in zones:
@@ -150,6 +151,7 @@ class ZoneResource(Resource):
 
 class RecordResource(Resource):
     def get(self, zone_name: str, record_name: str = None, record_type: str = None):
+        print(request)
         args = record_parser.parse_args()
         if not record_name:
             record_name = args.get("name")
@@ -169,8 +171,6 @@ class RecordResource(Resource):
 
         if record_name and not records:
             raise NotFound
-        if record_name:
-            records_response = records_response[0]
         return records_response
     
     def post(self, zone_name: str, record_name: str = None):
@@ -203,7 +203,7 @@ class RecordResource(Resource):
         updated_record_response = record_to_response(updated_record)[0]
         return updated_record_response
     
-    def delete(self, zone_name, record_name):
+    def delete(self, zone_name, record_name: str = None):
         parser = record_parser.copy()
         parser.replace_argument('type', type=str, help='Type of DNS Record', required=True)
         parser.replace_argument('data', type=dict, help='RData of the DNS Record', required=True)
