@@ -251,15 +251,14 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
         for rdata in rrset.items:
             record_type = rrset.rdtype
             record = {
-                        "name": str(rrset.name),
-                        "type": record_type._name_,
-                        "ttl": rrset.ttl,
-                        "data": {},
-                    }
+                "name": str(rrset.name),
+                "type": record_type._name_,
+                "ttl": rrset.ttl,
+                "data": {},
+                "comment": "",
+            }
             if getattr(rdata, 'rdcomment', None):
                 record['comment'] = rdata.rdcomment
-            else:
-                record['comment'] = ""
             record_slots = get_rdata_class_slots(record_type._name_)
             for slot in record_slots:
                 property_value = getattr(rdata, slot)
@@ -322,22 +321,29 @@ def request_to_record(
     rrset = dns.rrset.from_rdata(record_name, record_ttl, rdata)
     return rrset
 
-def get_record_types_map(record_type_name: str = None):
+def get_record_type_map(record_type_name: str = None):
     """
-    returns a dict of all record types with their names as keys, their attributes as subkeys, and the attributes typing as a subkey
+    For a given record type, returns a dict of type=name, and fields=[<all record data fields for that record data type>]
     """        
-    record_types = {}
-    if record_type_name:
-        record_types[record_type_name] = get_rdata_class_slots(record_type_name)
-    else:
-        for rdtype in dns.rdatatype.RdataType:
-            rdtype_text = dns.rdatatype.to_text(rdtype)
-            slots = get_rdata_class_slots(rdtype_text)
-            # deprecated record types have no slots, so we skip them
-            if len(slots) > 0:
-                record_types[rdtype_text] = slots
-        record_types = {k: record_types[k] for k in sorted(record_types)} # sort for user friendliness
+    return {
+        'type': record_type_name,
+        'fields': get_rdata_class_slots(record_type_name)
+    }
 
+def get_all_record_types() -> list:
+    """
+    Returns a list of dicts of record data types and their associated fields.
+    """
+    record_types = []
+    for rdtype in dns.rdatatype.RdataType:
+        rdtype_text = dns.rdatatype.to_text(rdtype)
+        #slots = get_rdata_class_slots(rdtype_text)
+        rdtype_map = get_record_type_map(rdtype_text)
+        # deprecated record types have no slots, so we skip them
+        if len(rdtype_map['fields']) > 0:
+            record_types.append(rdtype_map)
+    # sort for user friendliness
+    record_types = sorted(record_types, key=lambda rdata_type: rdata_type['type'])
     return record_types
 
 def get_rdata_class_slots(rdtype_text: str) -> list[str]: 

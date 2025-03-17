@@ -282,7 +282,7 @@ async function updateDataFieldsForType(typeSelect) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const recordTypeData = await response.json();
-        const fieldLabels = recordTypeData[selectedType] || [];
+        const fieldLabels = recordTypeData.fields || [];
         
         // Remove any non-primary empty rows
         existingEntries.forEach((entry, index) => {

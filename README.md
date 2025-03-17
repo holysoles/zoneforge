@@ -5,9 +5,6 @@ ZoneForge is a management tool for [RFC1035](https://rfc-annotations.research.ic
 ![GitHub License](https://img.shields.io/github/license/holysoles/zoneforge)
 ![Issues](https://img.shields.io/github/issues/holysoles/zoneforge)
 
-> [!WARNING]  
-> This is in early development and should be considered unstable until the first official release.
-
 ## About
 
 Zone files are a commonly supported standard for serving [authoritative DNS](https://en.wikipedia.org/wiki/Name_server#Authoritative_name_server) zone records, such as in [BIND](https://www.isc.org/bind/), [NSD](https://github.com/NLnetLabs/nsd), and [CoreDNS's file plugin](https://coredns.io/plugins/file/). While those DNS server implementations are highly performant and lightweight, they don't provide a user-friendly way to manage their zone's records.
@@ -42,14 +39,16 @@ Environment variables are available to configure the application.
 
 # API Features
 
-Note that deprecated fields are not supported by ZoneForge.
+Note that deprecated DNS record data fields are not supported by ZoneForge.
+
+For more comprehensive examples, check out the Swagger/OpenAPI (v2.0) documentation, available at `/api`. [You can also import the spec into Postman](https://learning.postman.com/docs/getting-started/importing-and-exporting/importing-from-swagger/).
 
 ## Zones
 
 ### Create
 
 ```shell
-curl -X POST 'http://localhost:5000/api/zone/example.com.' \
+curl -X POST 'http://localhost:5000/api/zones/example.com.' \
 --header 'Content-Type: application/json' \
 --data '{
     "soa_ttl": "3600",
@@ -69,18 +68,18 @@ curl -X POST 'http://localhost:5000/api/zone/example.com.' \
 
 #### Get all zones
 ```shell
-curl -X GET 'http://localhost:5000/api/zone'
+curl -X GET 'http://localhost:5000/api/zones'
 ```
 
 #### Get specific zone
 ```shell
-curl -X GET 'http://localhost:5000/api/zone/example.com.'
+curl -X GET 'http://localhost:5000/api/zones/example.com.'
 ```
 
 ### Delete
 
 ```shell
-curl -X DELETE 'http://localhost:5000/api/zone/example.com.'
+curl -X DELETE 'http://localhost:5000/api/zones/example.com.'
 ```
 
 ## Records
@@ -91,7 +90,7 @@ curl -X DELETE 'http://localhost:5000/api/zone/example.com.'
 ### Create
 
 ```shell
-curl -X POST 'http://localhost:5000/api/zone/example.com./record/subdomain' \
+curl -X POST 'http://localhost:5000/api/zones/example.com./records/subdomain' \
 --header 'Content-Type: application/json' \
 --data '{
     "type": "CNAME",
@@ -103,13 +102,13 @@ curl -X POST 'http://localhost:5000/api/zone/example.com./record/subdomain' \
 ### Read
 
 ```shell
-curl -X GET 'http://localhost:5000/api/zone/example.com./record/subdomain'
+curl -X GET 'http://localhost:5000/api/zones/example.com./records/subdomain'
 ```
 
 ### Update
 
 ```shell
-curl -X PUT 'http://localhost:5000/api/zone/example.com./record/subdomain' \
+curl -X PUT 'http://localhost:5000/api/zones/example.com./records/subdomain' \
 --header 'Content-Type: application/json' \
 --data '{
     "type": "CNAME",
@@ -120,7 +119,7 @@ curl -X PUT 'http://localhost:5000/api/zone/example.com./record/subdomain' \
 ### Delete
 
 ```shell
-curl -X DELETE 'http://localhost:5000/api/zone/example.com./record/subdomain' \
+curl -X DELETE 'http://localhost:5000/api/zones/example.com./records/subdomain' \
 --header 'Content-Type: application/json' \
 --data '{
     "type": "CNAME",
@@ -151,18 +150,16 @@ curl -X DELETE 'http://localhost:5000/api/zone/example.com./record/subdomain' \
 |  Patch Method for DNS Zones            | Backlog           |
 |  Patch Method for DNS Records          | Backlog           |
 | **Management**                          |                    |
-|  Expanded Record Type Support          | Planned           |
-|  Authentication                        | Backlog           |
+|  Authentication                        | In Progress       |
 |  Zone Import/Export                    | Backlog           |
 |  Preserve Default Zone TTL             | Backlog           |
 | **CI/CD**                               |                    |
-|  Dockerfile                            | Planned           |
-|  GitHub Actions Build Pipeline         | Planned           |
+|  Dockerfile                            | Complete          |
+|  GitHub Actions Build Pipeline         | Complete          |
+|  Test Suite                            | Complete          |
+|  GitHub Actions Test Pipeline          | Complete          |
 |  Package for PyPi/pip                  | Backlog           |
-|  Test Suite                            | Backlog           |
-|  GitHub Actions Test Pipeline          | Backlog           |
 |  CoreDNS Kubernetes Integration        | Backlog           |
-
 
 
 # Resources

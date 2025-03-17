@@ -2,7 +2,7 @@ import pytest
 import os
 import shutil
 from app import create_app
-from zoneforge.zf import ZFZone
+from zoneforge.core import ZFZone
 import dns.zone
 
 def _teardown_app(path: str):
