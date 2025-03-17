@@ -22,4 +22,4 @@ ENV GUNICORN_WORKERS=4
 ENV GUNICORN_CMD_ARGS="--bind 0.0.0.0:${PORT} --workers ${GUNICORN_WORKERS}"
 ENV PATH="${PATH}:/home/appuser/.local/bin"
 EXPOSE ${PORT}/tcp
-CMD ["gunicorn", "app:app"]
+CMD ["gunicorn", "app:production"]

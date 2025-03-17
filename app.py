@@ -76,4 +76,7 @@ def create_app():
     return app
 
 if __name__=="__main__":
-    create_app()
+    dev = create_app()
+    dev.run()
+else:
+    production = create_app()
