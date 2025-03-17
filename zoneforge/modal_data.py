@@ -200,7 +200,7 @@ ZONE_CREATION = {
     "heading": "Create New Zone",
     "id": "add-zone-modal",
     "api-method": "POST",
-    "api-endpoint": "/api/zone",
+    "api-endpoint": "/api/zones",
     "open-char": "+",
     "close-char": "&times;",
     "form": ZONE_CREATE_FORM
@@ -210,7 +210,7 @@ ZONE_EDIT = {
     "heading": "Edit Zone",
     "id": "edit-zone-modal",
     "api-method": "PUT",
-    "api-endpoint": "/api/zone",
+    "api-endpoint": "/api/zones",
     "api-id": "name",
     "deleteable": True,
     "delete-redirect": "home",

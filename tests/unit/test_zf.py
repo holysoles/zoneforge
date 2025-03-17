@@ -1,4 +1,4 @@
-from zoneforge.zf import ZFZone, get_zones, create_zone, delete_zone, get_records, create_record, update_record, delete_record
+from zoneforge.core import ZFZone, get_zones, create_zone, delete_zone, get_records, create_record, update_record, delete_record
 import dns.rdatatype
 import dns.zone
 import dns.name
@@ -27,7 +27,7 @@ def test_new_zfzone():
 def test_zfzone_to_response():
     """
     GIVEN a zfzone object
-    WHEN #TODO
+    WHEN its newly initialized
     THEN check that it can be converted to a response dictionary with expected keys
     """
     new_zone = dns.zone.from_text(text=ZONE_DATA_LIGHT)

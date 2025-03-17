@@ -2,7 +2,13 @@ from flask import Flask, render_template, request
 from flask_restx import Api
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_minify import minify
-import zoneforge.zf_api as zf_api
+from zoneforge.api.status import api as ns_status
+from zoneforge.api.types import api as ns_types
+from zoneforge.api.types import RecordTypeResource
+from zoneforge.api.zones import api as ns_zone
+from zoneforge.api.zones import DnsZone, get_zones
+from zoneforge.api.records import api as ns_record
+from zoneforge.api.records import DnsRecord
 from zoneforge.modal_data import *
 import os
 import logging
@@ -29,23 +35,22 @@ def create_app():
         app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
     )
     # API Setup
-    api = Api(app, prefix= '/api', doc='/api',)
-
+    api = Api(app, prefix= '/api', doc='/api', validate=True)
 
     @app.route("/", methods=['GET'])
     def home():
-        zf_zone = zf_api.ZoneResource()
+        zf_zone = DnsZone()
         try:
             zones = zf_zone.get()
         except:
             zones = []
         zone_create_defaults = ZONE_DEFAULTS | ZONE_PRIMARY_NS_DEFAULTS
-        return render_template('home.html.j2', zones=zones, modal=ZONE_CREATION, modal_api='/api/zone', modal_default_values=zone_create_defaults)
+        return render_template('home.html.j2', zones=zones, modal=ZONE_CREATION, modal_api='/api/zones', modal_default_values=zone_create_defaults)
 
     @app.route("/zone/<string:zone_name>", methods=['GET'])
     def zone(zone_name):
-        zone = zf_api.get_zones(zone_name=zone_name)[0].to_response()
-        zf_record = zf_api.RecordResource()
+        zone = get_zones(zone_name=zone_name)[0].to_response()
+        zf_record = DnsRecord()
         records = zf_record.get(zone_name=zone_name)
         current_zone_data = {
             "name": zone_name,
@@ -57,16 +62,16 @@ def create_app():
             "minimum": zone['soa']['data']['minimum'],
             "primary_ns": zone['soa']['data']['mname'],
         }
-        record_types = zf_api.RecordTypeResource()
-        record_types = record_types.get()
+        record_types = RecordTypeResource()
+        record_types_list = record_types.get()
         user_sort = request.args.get("sort", "name")
         user_sort_order = request.args.get("sort_order", "desc")
-        return render_template('zone.html.j2', zone=zone, modal=ZONE_EDIT, modal_default_values=current_zone_data, records=records, record_types=record_types, record_sort=user_sort, record_sort_order=user_sort_order)
+        return render_template('zone.html.j2', zone=zone, modal=ZONE_EDIT, modal_default_values=current_zone_data, records=records, record_types=record_types_list, record_sort=user_sort, record_sort_order=user_sort_order)
 
-    api.add_resource(zf_api.StatusResource, '/status')
-    api.add_resource(zf_api.ZoneResource, '/zone', '/zone/<string:zone_name>')
-    api.add_resource(zf_api.RecordResource, '/zone/<string:zone_name>/record', '/zone/<string:zone_name>/record/<string:record_name>')
-    api.add_resource(zf_api.RecordTypeResource, '/types/recordtype', '/types/recordtype/<string:record_type>')
+    api.add_namespace(ns_status)
+    api.add_namespace(ns_zone)
+    api.add_namespace(ns_record)
+    api.add_namespace(ns_types)
 
     return app
 
