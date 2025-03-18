@@ -4,6 +4,7 @@ WORKDIR /app
 
 # Copy the necessary files and directories into the container
 COPY static/ ./static/
+COPY lib/examples/ ./lib/examples
 COPY templates/ ./templates/
 COPY zoneforge/ ./zoneforge/
 COPY app.py requirements.txt  ./
