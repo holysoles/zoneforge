@@ -1,26 +1,30 @@
 # ZoneForge
 
-ZoneForge is a management tool for [RFC1035](https://rfc-annotations.research.icann.org/rfc1035.html)/BIND style DNS zone files. 
+ZoneForge is a web UI and REST API to manage [RFC1035](https://rfc-annotations.research.icann.org/rfc1035.html)/BIND style DNS zone files. 
 
 ![GitHub License](https://img.shields.io/github/license/holysoles/zoneforge)
 ![Issues](https://img.shields.io/github/issues/holysoles/zoneforge)
 
+![record management screenshot](lib/screenshots/record_management.png)
+
 ## About
 
-Zone files are a commonly supported standard for serving [authoritative DNS](https://en.wikipedia.org/wiki/Name_server#Authoritative_name_server) zone records, such as in [BIND](https://www.isc.org/bind/), [NSD](https://github.com/NLnetLabs/nsd), and [CoreDNS's file plugin](https://coredns.io/plugins/file/). While those DNS server implementations are highly performant and lightweight, they don't provide a user-friendly way to manage their zone's records.
-
-ZoneForge simplifies the *management* of RFC1035/BIND-style DNS zone files by providing an intuitive web-based interface and REST API, instead of re-inventing an entire DNS server. This project is ideal for administrators who require:
+ZoneForge provides a web-based interface and REST API for managing DNS records efficiently. Rather than re-inventing an entire DNS server, ZoneForge serves as a management layer for RFC1035/BIND-style DNS zone files. This project is ideal for administrators who require:
 - A centralized, user-friendly tool to manage DNS records.
 - Robust REST API.
 - Deployment flexibility for various environments.
 
+Zone files are a commonly supported standard for serving [authoritative DNS](https://en.wikipedia.org/wiki/Name_server#Authoritative_name_server) zone records, such as in [BIND](https://www.isc.org/bind/), [NSD](https://github.com/NLnetLabs/nsd), and [CoreDNS's file plugin](https://coredns.io/plugins/file/). While these DNS servers are highly-perfomant and lightweight, they often lack user-friendly management tools, which is where ZoneForge comes in.
+
 ## Table of Contents
 - [About](#about)
+- [Installation](#installation)
 - [Configuration](#configuration)
 - [API Features](#api-features)
   - [Zones](#zones)
   - [Records](#records)
-- [Roadmap](#roadmap)
+- [Web UI](#web-ui)
+- [Feature Roadmap](#feature-roadmap)
 - [Resources](#resources)
   - [Zone Files](#zone-files)
   - [Record Types](#record-types)
@@ -28,18 +32,44 @@ ZoneForge simplifies the *management* of RFC1035/BIND-style DNS zone files by pr
   - [Migrating Existing DNS to a Zone File](#migrating-existing-dns-to-a-zone-file)
 - [Credits](#credits)
 
+# Installation
+
+Deployment using [the published Docker image](https://github.com/holysoles/zoneforge/pkgs/container/zoneforge) is preferred, as it is tested and includes setup for using Gunicorn as a production WSGI server. Deploy it via Docker/Docker Compose/Kubernetes. Simple usage might look like:
+
+```bash
+docker run -d --rm \
+  -e ZONE_FILE_FOLDER=/etc/zones \
+  -v /path/to/zonefiles:/etc/zones \
+  -p 5000:5000 \
+  ghcr.io/holysoles/zoneforge:latest
+```
+
+Local installation should work as well. Check the Dockerfile for the latest targeted Python version.
+
+```bash
+git clone https://github.com/holysoles/zoneforge.git
+cd zoneforge
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+gunicorn app:production --bind 0.0.0.0:5000 --workers 4
+```
+
 # Configuration
 
-Environment variables are available to configure the application.
+Environment variables are available to configure the application. Additional information about Gunicorn configuration can be found [here](https://docs.gunicorn.org/en/latest/run.html).
 
 | Variable | Default | Description |
 | -------- | ------- | ----------- |
-| ZONE_FILE_FOLDER | ./lib/examples | The folder path to store/load zone files. |
+| ZONE_FILE_FOLDER | "./lib/examples" | The folder path to store/load zone files. |
 | DEFAULT_ZONE_TTL | 86400 | The default TTL for new zones. |
+| PORT | 5000 | Port for the web server to listen on. |
+| GUNICORN_WORKERS | 4 | How many worker processes to use for Gunicorn. |
+| GUNICORN_CMD_ARGS | "--bind 0.0.0.0:\${PORT} --workers \${GUNICORN_WORKERS}" | The command line arguments to pass Gunicorn. |
 
 # API Features
 
-Note that deprecated DNS record data fields are not supported by ZoneForge.
+Note that deprecated DNS records are not supported by ZoneForge.
 
 For more comprehensive examples, check out the Swagger/OpenAPI (v2.0) documentation, available at `/api`. [You can also import the spec into Postman](https://learning.postman.com/docs/getting-started/importing-and-exporting/importing-from-swagger/).
 
@@ -127,20 +157,17 @@ curl -X DELETE 'http://localhost:5000/api/zones/example.com./records/subdomain' 
 }'
 ```
 
-## Roadmap
+# Web UI
+
+The web UI is written with a focus on being lightweight for ease of maintenance and speed. This is accomplished with Flask templating and server-side rendering whenever possible, with minimal client side javascript with no external dependencies.
 
 # Feature Roadmap
 
 | **Feature**                             | **Status**         |
 |-----------------------------------------|--------------------|
 | **Web Interface**                       |                    |
-|  Create Zones                          | Complete          |
-|  Delete Zones                          | Complete          |
-|  Edit Zones                            | Complete          |
-|  Edit Records                          | Complete          |
-|  Create Records                        | Complete          |
-|  Delete Records                        | Complete          |
-|  Multi-zone Support                    | Complete          |
+|  CRUD for DNS Zones                    | Complete          |
+|  CRUD for DNS Records                  | Complete          |
 |  Client side validation                | Planned           |
 | **REST API**                            |                    |
 |  CRUD for DNS Zones                    | Complete          |
@@ -154,10 +181,8 @@ curl -X DELETE 'http://localhost:5000/api/zones/example.com./records/subdomain' 
 |  Zone Import/Export                    | Backlog           |
 |  Preserve Default Zone TTL             | Backlog           |
 | **CI/CD**                               |                    |
-|  Dockerfile                            | Complete          |
-|  GitHub Actions Build Pipeline         | Complete          |
+|  Docker Image                          | Complete          |
 |  Test Suite                            | Complete          |
-|  GitHub Actions Test Pipeline          | Complete          |
 |  Package for PyPi/pip                  | Backlog           |
 |  CoreDNS Kubernetes Integration        | Backlog           |
 
@@ -192,7 +217,6 @@ For each domain that a given DNS server is authorative for:
 4. Initiate the Zone Transfer: `dig axfr example.com @dns.example.com | grep -E -v '^;' > db.example.com`
 
 5. The file `db.example.com` should now contain a RFC1035-compatible zone file.
-
 
 # Contributing
 
