@@ -34,8 +34,12 @@ Environment variables are available to configure the application.
 
 | Variable | Default | Description |
 | -------- | ------- | ----------- |
-| ZONE_FILE_FOLDER | ./lib/examples | The folder path to store/load zone files. |
-| DEFAULT_ZONE_TTL | 86400 | The default TTL for new zones. |
+| ZONE_FILE_FOLDER | `"./lib/examples"` | The folder path to store/load zone files. |
+| DEFAULT_ZONE_TTL | `86400` | The default TTL for new zones. |
+| LOG_LEVEL | `"WARNING"` | Log level for the application. Options: [`"DEBUG"`, `"INFO"`, `"WARNING"`, `"ERROR"`, `"CRITICAL"`] |
+| PORT | `5000` | Port for the web server to listen on. |
+| GUNICORN_WORKERS | `4` | How many worker processes to use for Gunicorn. |
+| GUNICORN_CMD_ARGS | `"--bind 0.0.0.0:\${PORT} --workers \${GUNICORN_WORKERS}"` | The command line arguments to pass Gunicorn. |
 
 # API Features
 
