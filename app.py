@@ -20,7 +20,7 @@ def create_app():
 
     # Configuration with environment variables and defaults
     log_config = {}
-    log_config['level'] = os.environ.get('LOG_LEVEL', 'DEBUG').upper()
+    log_config['level'] = os.environ.get('LOG_LEVEL', 'WARNING').upper()
     log_config['format'] = "%(levelname)s [%(filename)-s%(funcName)s():%(lineno)s]: %(message)s"
     if not os.environ.get('CONTAINER', False):
         log_config['format'] = f"[%(asctime)s] {log_config['format']}"
