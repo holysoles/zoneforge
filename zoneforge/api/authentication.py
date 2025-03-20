@@ -3,12 +3,14 @@ from datetime import datetime, timedelta, timezone
 import bcrypt
 import jwt
 from flask import current_app
-from flask_restx import Resource, reqparse
+from flask_restx import Namespace, Resource, reqparse
 from werkzeug.exceptions import *
 
-import db.db_model as model
-from db import db
+import zoneforge.db.db_model as model
+from zoneforge.db import db
 from functools import wraps
+
+api = Namespace('auth', description='Authentication operations')
 
 # Parsers
 login_parser = reqparse.RequestParser(bundle_errors=True)
@@ -102,6 +104,7 @@ def _generate_token(user_id):
     except Exception as error:
             return {"message": str(error)}, 400
 
+@api.route('/login')
 class LoginResource(Resource):
     def post(self):
         try:
@@ -137,6 +140,7 @@ class LoginResource(Resource):
         except Exception as error:
             return {"message": str(error)}, 400
 
+@api.route('/refresh')
 class RefreshTokenResource(Resource):
     def post(self):
         try:
@@ -159,7 +163,8 @@ class RefreshTokenResource(Resource):
 
         except Exception as error:
             return {"message": str(error)}, 400
-        
+
+@api.route('/signup')
 class SignupResource(Resource):
     def post(self):
         try:

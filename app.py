@@ -9,9 +9,10 @@ from zoneforge.api.zones import api as ns_zone
 from zoneforge.api.zones import DnsZone, get_zones
 from zoneforge.api.records import api as ns_record
 from zoneforge.api.records import DnsRecord
+from zoneforge.api.authentication import api as ns_auth
+from zoneforge.api.authentication import LoginResource, SignupResource
 from zoneforge.modal_data import *
-import zoneforge.authentication as auth
-from db import db
+from zoneforge.db import db
 import os
 import logging
 import sys
@@ -30,16 +31,18 @@ def create_app():
     logging.basicConfig(**log_config)
 
     app.config['ZONE_FILE_FOLDER'] = os.environ.get('ZONE_FILE_FOLDER', './lib/examples')
-    app.config['DEFAULT_ZONE_TTL'] = int(os.environ.get('DEFAULT_ZONE_TTL', '86400'))
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret_key')
-    app.config['TOKEN_SECRET'] = os.environ.get('TOKEN_SECRET', 'token_secret')
-    app.config['REFRESH_TOKEN_SECRET'] = os.environ.get('REFRESH_TOKEN_SECRET', 'refresh_token_secret')
+    app.config['DEFAULT_ZONE_TTL'] = os.environ.get('DEFAULT_ZONE_TTL', 86400)
+    app.config['AUTH_ENABLED'] = os.environ.get('AUTH_ENABLED', 'false').lower() == 'true'
+    app.config['SECRET_KEY'] = os.environ.get('AUTH_SECRET_KEY', 'secret_key')
+    app.config['TOKEN_SECRET'] = os.environ.get('AUTH_TOKEN_SECRET', 'token_secret')
+    app.config['REFRESH_TOKEN_SECRET'] = os.environ.get('AUTH_REFRESH_TOKEN_SECRET', 'refresh_token_secret')
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('AUTH_DB_URI', 'sqlite:///zoneinfo.db')
 
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI', 'sqlite:///zoneinfo.db')
-    db.init_app(app)
-
-    with app.app_context():
-        db.create_all()
+    if app.config['AUTH_ENABLED']:
+        logging.info('authentication enabled, setting up database')
+        db.init_app(app)
+        with app.app_context():
+            db.create_all()
 
     minify(app=app, html=True, js=True, cssless=True, static=True)
     app.wsgi_app = ProxyFix(
@@ -82,7 +85,7 @@ def create_app():
     @app.route('/login', methods=['GET', 'POST'])
     def login():
         if request.method == 'POST':
-            login_response = auth.LoginResource().post()
+            login_response = LoginResource().post()
 
             if login_response[1] != 200:
                 flash(login_response[0])
@@ -95,7 +98,7 @@ def create_app():
     @app.route('/signup', methods=['GET', 'POST'])
     def signup():
         if request.method == 'POST':
-            signup_response = auth.SignupResource().post()
+            signup_response = SignupResource().post()
 
             flash(signup_response[0])
 
@@ -111,10 +114,7 @@ def create_app():
     api.add_namespace(ns_zone)
     api.add_namespace(ns_record)
     api.add_namespace(ns_types)
-
-    api.add_resource(auth.LoginResource, '/login')
-    api.add_resource(auth.RefreshTokenResource, '/refresh')
-    api.add_resource(auth.SignupResource, '/signup')
+    api.add_namespace(ns_auth)
 
     return app
 
