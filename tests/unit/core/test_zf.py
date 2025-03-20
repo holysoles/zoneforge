@@ -1,4 +1,3 @@
-# pylint: disable=missing-class-docstring
 import os.path
 import dns.rdatatype
 import dns.zone

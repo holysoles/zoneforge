@@ -1,4 +1,3 @@
-# pylint: disable=missing-class-docstring
 def test_zf_api_zone_get_empty(client_new):
     res = client_new.get("/api/zones")
     assert res.status_code == 200
