@@ -168,6 +168,8 @@ pylint $(git ls-files '*.py')
 pytest
 ```
 
+For GitHub Actions, [pin-github-action](https://github.com/mheap/pin-github-action) is used to update tag refs to commit hashes
+
 # Credits
 
 Special thanks to the following projects for providing essential libraries:
