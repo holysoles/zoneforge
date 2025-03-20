@@ -48,6 +48,12 @@ record_put_parser.add_argument(
 record_put_parser.add_argument(
     "comment", type=str, help="Comment for the DNS Record", required=False
 )
+record_put_parser.add_argument(
+    "index",
+    type=int,
+    help="Index of the record within its name & type pair (Resource Record Set)",
+    required=True,
+)
 
 record_delete_parser = record_get_parser.copy()
 record_delete_parser.replace_argument(
@@ -59,6 +65,12 @@ record_delete_parser.add_argument(
 record_delete_parser.add_argument(
     "data", type=dict, help="RData of the DNS Record", required=True
 )
+record_delete_parser.add_argument(
+    "index",
+    type=int,
+    help="Index of the record within its name & type pair (Resource Record Set)",
+    required=True,
+)
 
 dns_fields_model = api.model("DnsRecordFields", {"*": fields.Wildcard(fields.Raw)})
 dns_record_model = api.model(
@@ -69,6 +81,7 @@ dns_record_model = api.model(
         "ttl": fields.Integer(example=86400),
         "comment": fields.String(example="A comment describing the record"),
         "data": fields.Nested(dns_fields_model, example={"address": "192.168.1.2"}),
+        "index": fields.Integer(example=0),
     },
 )
 
@@ -96,8 +109,6 @@ class DnsRecord(Resource):
         )
         records_response = record_to_response(records=records)
 
-        if record_name and not records:
-            raise NotFound
         return records_response
 
     @api.expect(record_post_parser)
@@ -122,7 +133,7 @@ class DnsRecord(Resource):
 @api.route("/zones/<string:zone_name>/records/<string:record_name>")
 class SpecificDnsRecord(Resource):
     @api.expect(record_get_parser)
-    @api.marshal_with(dns_record_model)
+    @api.marshal_with(dns_record_model, as_list=True)
     def get(self, zone_name: str, record_name: str):
         """
         Gets a list of all records in the zone under the specified name.
@@ -161,6 +172,7 @@ class SpecificDnsRecord(Resource):
             record_ttl=record_ttl,
             record_data=args["data"],
             record_comment=args["comment"],
+            record_index=args["index"],
         )
         updated_record_response = record_to_response(updated_record)[0]
         return updated_record_response
@@ -177,5 +189,6 @@ class SpecificDnsRecord(Resource):
             record_type=args["type"],
             record_data=args["data"],
             record_ttl=args["ttl"],
+            record_index=args["index"],
         )
         return {}

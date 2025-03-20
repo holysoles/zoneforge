@@ -259,10 +259,10 @@ def test_zf_create_cname_record(app_with_single_zone, zfzone_common_data):
 
 def test_zf_create_mx_record(app_with_single_zone, zfzone_common_data):
     zone_name = str(zfzone_common_data.origin)
-    record_name = "mail-test"
+    record_name = "@"
     record_dns_name = dns.name.from_text(record_name, origin=zfzone_common_data.origin)
     record_type = "MX"
-    record_data = {"preference": 20, "exchange": "mail"}
+    record_data = {"preference": 30, "exchange": "mail3"}
 
     with app_with_single_zone.app_context():
         created_record = create_record(
@@ -285,7 +285,9 @@ def test_zf_create_mx_record(app_with_single_zone, zfzone_common_data):
             zone_name=zone_name, record_name=record_name, record_type=record_type
         )
     assert len(got_records) == 1
-    assert created_record == got_records[0]
+    got_record_rdatas = list(got_records[0].items)
+    created_rdata = list(created_record.items)[0]
+    assert created_rdata in got_record_rdatas
 
 
 def test_zf_create_record_nowrite(app_with_single_zone, zfzone_common_data):
@@ -328,6 +330,7 @@ def test_zf_update_a_record(app_with_single_zone, zfzone_common_data):
     record_name = "ns1"
     record_type = "A"
     record_data = {"address": "192.168.1.1"}
+    record_index = 0
 
     with app_with_single_zone.app_context():
         existing_records = get_records(
@@ -342,6 +345,7 @@ def test_zf_update_a_record(app_with_single_zone, zfzone_common_data):
             record_type=record_type,
             record_data=record_data,
             zone_name=zone_name,
+            record_index=record_index,
         )
     assert isinstance(updated_record, dns.rrset.RRset)
     updated_rdata = updated_record[0]
@@ -363,6 +367,7 @@ def test_zf_delete_a_record(app_with_single_zone, zfzone_common_data):
     record_type = "A"
     record_ttl = "86400"
     record_data = {"address": "192.168.1.10"}
+    record_index = 0
 
     with app_with_single_zone.app_context():
         existing_records = get_records(
@@ -378,6 +383,7 @@ def test_zf_delete_a_record(app_with_single_zone, zfzone_common_data):
             record_type=record_type,
             record_data=record_data,
             record_ttl=record_ttl,
+            record_index=record_index,
             zone_name=zone_name,
         )
 
@@ -389,3 +395,39 @@ def test_zf_delete_a_record(app_with_single_zone, zfzone_common_data):
             assert False
         except NotFound:
             assert True
+
+
+def test_zf_delete_single_record_under_rrset(app_with_single_zone, zfzone_common_data):
+    zone_name = str(zfzone_common_data.origin)
+    record_name = "@"
+    record_type = "MX"
+    record_ttl = "86400"
+    record_data = {"preference": 10, "exchange": "mail"}
+    record_index = 0
+
+    with app_with_single_zone.app_context():
+        existing_records = get_records(
+            zone_name=zone_name, record_name=record_name, record_type=record_type
+        )
+    original_length = len(existing_records[0].items)
+    assert original_length >= 1
+    assert record_data["preference"] == getattr(existing_records[0][0], "preference")
+    assert (
+        record_data["exchange"] == getattr(existing_records[0][0], "exchange").to_text()
+    )
+
+    with app_with_single_zone.app_context():
+        _ = delete_record(
+            record_name=record_name,
+            record_type=record_type,
+            record_data=record_data,
+            record_ttl=record_ttl,
+            record_index=record_index,
+            zone_name=zone_name,
+        )
+
+    with app_with_single_zone.app_context():
+        after_records = get_records(
+            zone_name=zone_name, record_name=record_name, record_type=record_type
+        )
+    assert len(after_records[0].items) == original_length - 1

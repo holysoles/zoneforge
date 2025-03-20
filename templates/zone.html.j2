@@ -91,7 +91,7 @@
                 <tbody>
                     {% for record in records | sort(attribute=record_sort, reverse=(record_sort_order=='asc') ) %}
                     {% set record_url_path = url_for("records_specific_dns_record", **{"record_name": record.name, "zone_name": zone.name}) %}
-                    <tr data-record-name="{{ record.name }}" data-url="{{ record_url_path }}">
+                    <tr data-record-name="{{ record.name }}" data-url="{{ record_url_path }}" data-record-index="{{ record.index }}">
                         <td><input type="checkbox"></td>
                         <td class="editable" data-field="name">{{ record.name }}</td>
                         <td class="editable" data-field="type">{{ record.type }}</td>

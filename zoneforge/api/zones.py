@@ -259,6 +259,7 @@ class SpecificDnsZone(Resource):
             record_type="SOA",
             record_data=soa_record_data,
             record_ttl=args["soa_ttl"],
+            record_index=0,
         )
 
         update_zone = get_zones(dns_name)
