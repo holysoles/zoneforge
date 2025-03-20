@@ -128,7 +128,8 @@ async function deleteRecord(row) {
             ['type', row.querySelector('[data-field="type"]').textContent.trim()],
             ['ttl', row.querySelector('[data-field="ttl"]')?.textContent.trim()],
             ['data', getRecordDataFromCell(row.querySelectorAll('[data-field="data"]'))],
-            ['comment', row.querySelector('[data-field="comment"]')?.textContent.trim()]
+            ['comment', row.querySelector('[data-field="comment"]')?.textContent.trim()],
+            ['index', row.getAttribute('data-record-index')]
         ].filter(([_, value]) => value));
 
         const response = await fetch(row.getAttribute('data-url'), {
@@ -154,7 +155,8 @@ async function saveChanges(row) {
             ['type', row.querySelector('[data-field="type"] select')?.value.trim()],
             ['ttl', row.querySelector('[data-field="ttl"] input')?.value.trim()],
             ['data', getRecordDataFromCell(row.querySelectorAll('[data-field="data"]'))],
-            ['comment', row.querySelector('[data-field="comment"] input')?.value.trim()]
+            ['comment', row.querySelector('[data-field="comment"] input')?.value.trim()],
+            ['index', row.getAttribute('data-record-index')]
         ].filter(([_, value]) => value));
 
         const response = await fetch(row.getAttribute('data-url'), {

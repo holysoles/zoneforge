@@ -221,6 +221,7 @@ def create_record(
 ) -> dns.rrset.RRset:
 
     # perform validation only when we're writing to disk. creating a new zone requires we have the record objects first.
+    matching_rrset = None
     if write:
         if not zone_name:
             raise ValueError("A zone_name must be provided to write to a zone file.")
@@ -228,12 +229,13 @@ def create_record(
         if not zone:
             raise NotFound("the specified zone does not exist.")
         zone = zone[0]
-        if zone.get_rdataset(name=record_name, rdtype=record_type):
-            raise BadRequest("specified record already exists.")
+        matching_rrset = zone.get_rrset(name=record_name, rdtype=record_type)
 
-    new_rrset = request_to_record(
+    if not record_ttl:
+        record_ttl = current_app.config["DEFAULT_ZONE_TTL"]
+
+    new_rdata = request_to_rdata(
         zone_name=zone_name,
-        record_name=record_name,
         record_type=record_type,
         record_data=record_data,
         record_ttl=record_ttl,
@@ -241,9 +243,20 @@ def create_record(
         record_comment=record_comment,
     )
 
+    # We always want a clean rrset to return, since rdata isn't associated with a name
+    new_rrset = dns.rrset.from_rdata(record_name, record_ttl, new_rdata)
+    if matching_rrset:
+        try:
+            matching_rrset.add(new_rdata, record_ttl)
+            updated_rrset = matching_rrset
+        except (dns.rdataset.IncompatibleTypes, dns.rdataset.DifferingCovers) as e:
+            raise BadRequest from e
+    else:
+        updated_rrset = new_rrset
+
     if write:
         with zone.writer() as txn:
-            txn.add(new_rrset)
+            txn.add(updated_rrset)
         logger.info(
             "Created record %s in zone %s with data '%s'",
             record_name,
@@ -260,26 +273,44 @@ def update_record(
     record_name: str,
     record_type: str,
     record_data: dict,
+    record_index: int,
     record_class: dns.rdataclass.RdataClass = "IN",
     record_ttl: int = None,
     record_comment: str = None,
 ) -> dns.rrset.RRset:
     zone = get_zones(zone_name)[0]
-    if not zone.get_rdataset(name=record_name, rdtype=record_type):
+    if not record_ttl:
+        record_ttl = current_app.config["DEFAULT_ZONE_TTL"]
+
+    matching_rrset = zone.get_rrset(name=record_name, rdtype=record_type)
+    if not matching_rrset:
         raise NotFound("specified record does not exist.")
 
-    new_rrset = request_to_record(
+    new_rdata = request_to_rdata(
         zone_name=zone_name,
-        record_name=record_name,
         record_type=record_type,
         record_data=record_data,
         record_ttl=record_ttl,
         record_class=record_class,
         record_comment=record_comment,
     )
+    # We always want a clean rrset to return, since rdata isn't associated with a name
+    new_rrset = dns.rrset.from_rdata(record_name, record_ttl, new_rdata)
+    # replace the original rdata of the record we're updating with the new rdata
+    try:
+        rdata_to_change = list(matching_rrset.items)[record_index]
+    except IndexError:
+        # pylint: disable=raise-missing-from
+        raise NotFound("Provided record index was not found.")
+        # pylint: enable=raise-missing-from
+    new_rdata_list = [
+        new_rdata if rdata == rdata_to_change else rdata
+        for rdata in list(matching_rrset.items)
+    ]
+    updated_rrset = dns.rrset.from_rdata_list(record_name, record_ttl, new_rdata_list)
 
     with zone.writer() as txn:
-        txn.replace(new_rrset)
+        txn.replace(updated_rrset)
     logger.info(
         "Updated record %s in zone %s with data '%s'",
         record_name,
@@ -297,13 +328,14 @@ def delete_record(
     record_type: str,
     record_data: dict,
     record_ttl: int,
+    # we aren't using record_index at the moment, but it is required in the event it is deemed necessary for use
+    record_index: int,  # pylint: disable=unused-argument
     record_class: dns.rdataclass.RdataClass = "IN",
 ) -> bool:
     zone = get_zones(zone_name)[0]
 
-    target_rrset = request_to_record(
+    target_rdata = request_to_rdata(
         zone_name=zone_name,
-        record_name=record_name,
         record_type=record_type,
         record_data=record_data,
         record_ttl=record_ttl,
@@ -311,7 +343,7 @@ def delete_record(
     )
     with zone.writer() as txn:
         try:
-            txn.delete_exact(target_rrset)
+            txn.delete_exact(record_name, target_rdata)
             logger.info("Deleted record %s in zone %s", record_name, zone_name)
         except dns.transaction.DeleteNotExact:
             raise NotFound(  # pylint: disable=raise-missing-from
@@ -331,6 +363,7 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
 
     for rrset in records:
         logger.debug("transforming records under name %s", rrset.name)
+        rdata_index = 0
         for rdata in rrset.items:
             record_type = rrset.rdtype
             record = {
@@ -339,6 +372,7 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
                 "ttl": rrset.ttl,
                 "data": {},
                 "comment": "",
+                "index": rdata_index,
             }
             if getattr(rdata, "rdcomment", None):
                 record["comment"] = rdata.rdcomment
@@ -371,20 +405,20 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
                 record["data"][slot] = property_value
 
             transformed_records.append(record)
+            rdata_index += 1
     return transformed_records
 
 
 # pylint: disable=too-many-arguments
-def request_to_record(
+def request_to_rdata(
     *,
     zone_name: str,
-    record_name: str,
     record_type: str,
     record_data: dict,
     record_class: dns.rdataclass.RdataClass,
     record_ttl: int = None,
     record_comment: str = None,
-) -> dns.rrset.RRset:
+) -> dns.rdata.Rdata:
     origin = dns.name.from_text(text=zone_name)
 
     if not record_ttl:
@@ -399,8 +433,6 @@ def request_to_record(
             record_data[record_field] = data_name.relativize(origin=origin)
 
     # construct rdata class values from string in the proper order. We could pass these to a constructor as kwargs, but we don't currently have client side rdata slot typing
-    # rdata_class = _get_rdata_class(record_type)
-    # rdata = rdata_class(rdclass=record_class, rdtype=record_type, **record_data)
     rdata_str = ""
     for rdata_slot in get_rdata_class_slots(record_type):
         rdata_str += f"{record_data[rdata_slot]} "
@@ -412,8 +444,7 @@ def request_to_record(
         rdata_dict["rdcomment"] = record_comment
         rdata.__setstate__(rdata_dict)
 
-    rrset = dns.rrset.from_rdata(record_name, record_ttl, rdata)
-    return rrset
+    return rdata
 
 
 # pylint: enable=too-many-arguments
@@ -433,7 +464,6 @@ def get_all_record_types() -> list:
     record_types = []
     for rdtype in dns.rdatatype.RdataType:
         rdtype_text = dns.rdatatype.to_text(rdtype)
-        # slots = get_rdata_class_slots(rdtype_text)
         rdtype_map = get_record_type_map(rdtype_text)
         # deprecated record types have no slots, so we skip them
         if len(rdtype_map["fields"]) > 0:

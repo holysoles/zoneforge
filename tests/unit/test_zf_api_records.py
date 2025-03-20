@@ -7,10 +7,11 @@ def test_zf_api_record_get(client_single_zone, zfzone_common_data):
     assert len(all_records.json) > 0
     for record in all_records.json:
         assert isinstance(record, dict)
-        assert record.get("name")
-        assert record.get("type")
-        assert record.get("ttl")
-        assert record.get("data")
+        assert record.get("name") is not None
+        assert record.get("type") is not None
+        assert record.get("ttl") is not None
+        assert record.get("data") is not None
+        assert record.get("index") is not None
 
     record_type_queries = [
         {"type": "A"},
@@ -75,6 +76,7 @@ def test_zf_api_record_put(client_single_zone, zfzone_common_data):
     # check for record first
     existing = client_single_zone.get(record_endpoint, json=update_record_data)
     assert existing.status_code == 200
+    update_record_data["index"] = existing.json[0]["index"]
     update_record_data["data"] = {}
     update_record_data["data"]["address"] = "192.168.1.100"
     assert existing.json[0]["data"]["address"] != update_record_data["data"]["address"]
@@ -86,9 +88,34 @@ def test_zf_api_record_put(client_single_zone, zfzone_common_data):
     assert record["name"] == record_name
     assert record["type"] == update_record_data["type"]
     assert record["data"]["address"] == update_record_data["data"]["address"]
+    assert record["index"] == update_record_data["index"]
+
+
+def test_zf_api_record_put_bad_index(client_single_zone, zfzone_common_data):
+    origin = zfzone_common_data.origin.to_text()
+    record_name = "ns1"
+    record_endpoint = f"/api/zones/{origin}/records/{record_name}"
+    update_record_data = {
+        "type": "A",
+    }
+    # check for record first
+    existing = client_single_zone.get(record_endpoint, json=update_record_data)
+    assert existing.status_code == 200
+    update_record_data["index"] = 99
+    update_record_data["data"] = {}
+    update_record_data["data"]["address"] = "192.168.1.100"
+    assert existing.json[0]["data"]["address"] != update_record_data["data"]["address"]
+
+    res = client_single_zone.put(record_endpoint, json=update_record_data)
+    assert res.status_code == 404
 
 
 def test_zf_api_record_delete(client_single_zone, zfzone_common_data):
+    """
+    GIVEN a zone object
+    WHEN it has multiple records under the same given name and record type
+    THEN check that only the specified record is deleted
+    """
     origin = zfzone_common_data.origin.to_text()
     record_name = "ns1"
     record_endpoint = f"/api/zones/{origin}/records/{record_name}"
@@ -96,6 +123,7 @@ def test_zf_api_record_delete(client_single_zone, zfzone_common_data):
         "type": "A",
         "ttl": 86400,
         "data": {"address": "192.168.1.10"},
+        "index": 0,
     }
 
     existing = client_single_zone.get(record_endpoint, json=delete_record_data)
