@@ -1,4 +1,4 @@
-Name: Default Branch Jobs
+name: Default Branch Jobs
 
 on:
   workflow_dispatch: # Allow manual triggers
