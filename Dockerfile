@@ -1,5 +1,7 @@
 FROM python:3.11-slim
 
+ARG VERSION
+
 WORKDIR /app
 
 # Copy the necessary files and directories into the container
@@ -19,6 +21,7 @@ USER appuser
 RUN pip3 install --upgrade pip && pip install --no-cache-dir -r requirements/prod.txt
 
 ENV CONTAINER="true"
+ENV VERSION=$VERSION
 ENV PORT=5000
 ENV GUNICORN_WORKERS=4
 ENV GUNICORN_CMD_ARGS="--bind 0.0.0.0:${PORT} --workers ${GUNICORN_WORKERS}"

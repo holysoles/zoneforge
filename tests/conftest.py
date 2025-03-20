@@ -15,6 +15,7 @@ def _teardown_app(path: str):
 def app_new(tmp_path):
     zonefile_folder = str(tmp_path)
     os.environ["ZONE_FILE_FOLDER"] = zonefile_folder
+    os.environ["VERSION"] = "v1.0.0"
 
     app = create_app()
     app.config.update({"TESTING": True, "ZONE_FILE_FOLDER": zonefile_folder})

@@ -1,6 +1,7 @@
 import os
 import logging
 import sys
+import subprocess
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_restx import Api
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -18,11 +19,7 @@ from zoneforge.api.authentication import LoginResource, SignupResource
 from zoneforge.db import db
 
 
-def create_app():
-    # Flask App setup
-    app = Flask(__name__, static_folder="static", static_url_path="")
-
-    # Configuration with environment variables and defaults
+def get_logging_conf() -> dict:
     log_config = {}
     log_config["level"] = os.environ.get("LOG_LEVEL", "WARNING").upper()
     log_config["format"] = (
@@ -31,8 +28,28 @@ def create_app():
     if not os.environ.get("CONTAINER", False):
         log_config["format"] = f"[%(asctime)s] {log_config['format']}"
     log_config["handlers"] = [logging.StreamHandler(sys.stdout)]
+    return log_config
+
+
+def create_app():
+    # Flask App setup
+    app = Flask(__name__, static_folder="static", static_url_path="")
+
+    # Configuration with environment variables and defaults
+    log_config = get_logging_conf()
     logging.basicConfig(**log_config)
 
+    try:
+        git_tag = (
+            subprocess.run(
+                ["git", "describe", "--tags"], capture_output=True, check=False
+            )
+            .stdout.decode("utf-8")
+            .rstrip("\n")
+        )
+    except FileNotFoundError:
+        git_tag = None
+    app.config["VERSION"] = os.environ.get("VERSION", git_tag)
     app.config["ZONE_FILE_FOLDER"] = os.environ.get(
         "ZONE_FILE_FOLDER", "./lib/examples"
     )

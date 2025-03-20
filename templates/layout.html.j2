@@ -21,5 +21,17 @@
             {% block content %}
             {% endblock %}
         </div>
+        <div class="footer">
+        {% set version = config['VERSION'] %}
+            <p>
+                <a target="_blank" href="https://github.com/holysoles/zoneforge">ZoneForge</a>
+                {% if version %}
+                -
+                <a target="_blank" href="https://github.com/holysoles/zoneforge/releases/tag/{{ version }}">{{ version }}</a>
+                {% endif %}
+                |
+                Apache License 2.0
+            </p>
+        </div>
     </body>
 </html>

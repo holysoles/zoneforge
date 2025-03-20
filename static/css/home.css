@@ -42,6 +42,20 @@ header p {
     flex-direction: column;
     gap: 1.5rem;
 }
+.footer {
+    bottom: 0px;
+    position: fixed;
+    text-align: center;
+    width: 100%;
+    background-color: #f4f4f9;
+    border-top: 1px solid grey;
+    padding: 5px 0px;
+    font-size: .8rem;
+    margin: 0px;
+}
+.footer p {
+    margin: 0px;
+}
 
 /* Grid and Card Layout */
 .zones {
