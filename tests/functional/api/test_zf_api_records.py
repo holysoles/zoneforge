@@ -1,4 +1,3 @@
-# pylint: disable=missing-class-docstring
 def test_zf_api_record_get(client_single_zone, zfzone_common_data):
     origin = zfzone_common_data.origin.to_text()
     zone_endpoint = f"/api/zones/{origin}/records"
