@@ -4,11 +4,11 @@ WORKDIR /app
 
 # Copy the necessary files and directories into the container
 COPY static/ ./static/
-COPY lib/examples/ ./lib/examples
+COPY lib/examples/ ./lib/examples/
 COPY templates/ ./templates/
 COPY zoneforge/ ./zoneforge/
-COPY db/ ./db/
-COPY app.py requirements.txt  ./
+COPY requirements/  ./requirements/
+COPY app.py ./
 
 # create non-root user
 RUN useradd -m -u 1000 appuser
@@ -16,7 +16,7 @@ RUN chown -R appuser:appuser /app
 USER appuser
 
 # Upgrade pip and install Python dependencies
-RUN pip3 install --upgrade pip && pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --upgrade pip && pip install --no-cache-dir -r requirements/prod.txt
 
 ENV CONTAINER="true"
 ENV PORT=5000

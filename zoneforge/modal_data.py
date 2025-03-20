@@ -1,4 +1,3 @@
-
 ZONE_CREATE_PRIMARY_NS_OPTIONS = [
     {
         "id": "primary_ns",
@@ -62,8 +61,8 @@ ZONE_CREATE_FORM = [
             #    "type": "number",
             #    "default": 86400,
             #    "required": True,
-            #},
-        ]
+            # },
+        ],
     },
     {
         "heading": "SOA",
@@ -104,19 +103,16 @@ ZONE_CREATE_FORM = [
                 "type": "number",
                 "required": True,
             },
-                {
+            {
                 "id": "minimum",
                 "label": "Minimum",
                 "tooltip": "Used to calculate negative response caching. Resolvers use the smaller of this value or the SOA TTL",
                 "type": "number",
                 "required": True,
             },
-        ]
+        ],
     },
-    {
-        "heading": "Primary Nameserver",
-        "inputs": ZONE_CREATE_PRIMARY_NS_OPTIONS
-    }
+    {"heading": "Primary Nameserver", "inputs": ZONE_CREATE_PRIMARY_NS_OPTIONS},
 ]
 
 ZONE_EDIT_FORM = [
@@ -139,8 +135,8 @@ ZONE_EDIT_FORM = [
             #    "type": "number",
             #    "default": 86400,
             #    "required": True,
-            #},
-        ]
+            # },
+        ],
     },
     {
         "heading": "SOA",
@@ -181,19 +177,16 @@ ZONE_EDIT_FORM = [
                 "type": "number",
                 "required": True,
             },
-                {
+            {
                 "id": "minimum",
                 "label": "Minimum",
                 "tooltip": "Used to calculate negative response caching. Resolvers use the smaller of this value or the SOA TTL",
                 "type": "number",
                 "required": True,
             },
-        ]
+        ],
     },
-    {
-        "heading": "Primary Nameserver",
-        "inputs": ZONE_EDIT_PRIMARY_NS_OPTIONS
-    }
+    {"heading": "Primary Nameserver", "inputs": ZONE_EDIT_PRIMARY_NS_OPTIONS},
 ]
 
 ZONE_CREATION = {
@@ -203,7 +196,7 @@ ZONE_CREATION = {
     "api-endpoint": "/api/zones",
     "open-char": "+",
     "close-char": "&times;",
-    "form": ZONE_CREATE_FORM
+    "form": ZONE_CREATE_FORM,
 }
 
 ZONE_EDIT = {
@@ -216,7 +209,7 @@ ZONE_EDIT = {
     "delete-redirect": "home",
     "open-char": "Edit",
     "close-char": "&times;",
-    "form": ZONE_EDIT_FORM
+    "form": ZONE_EDIT_FORM,
 }
 
 ZONE_DEFAULTS = {

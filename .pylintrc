@@ -1,0 +1,12 @@
+[MASTER]
+output-format=colorized
+
+# if more than 2 positional arguments, throw warning
+max-positional-arguments = 3
+
+max-nested-blocks = 6
+
+disable=missing-module-docstring,missing-function-docstring,missing-class-docstring
+
+[FORMAT]
+max-line-length=180
