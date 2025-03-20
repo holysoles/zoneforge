@@ -1,30 +1,29 @@
-import pytest
 import os
 import shutil
+import pytest
+import dns.zone
 from app import create_app
 from zoneforge.core import ZFZone
-import dns.zone
 
+
+# pylint: disable=redefined-outer-name
 def _teardown_app(path: str):
     shutil.rmtree(path)
+
 
 @pytest.fixture()
 def app_new(tmp_path):
     zonefile_folder = str(tmp_path)
-    os.environ['ZONE_FILE_FOLDER'] = zonefile_folder
+    os.environ["ZONE_FILE_FOLDER"] = zonefile_folder
 
     app = create_app()
-    app.config.update({
-        "TESTING": True,
-        "ZONE_FILE_FOLDER": zonefile_folder
-    })
-
+    app.config.update({"TESTING": True, "ZONE_FILE_FOLDER": zonefile_folder})
     app.app_context().push()
-
     yield app
 
     # teardown
     _teardown_app(tmp_path)
+
 
 @pytest.fixture()
 def zfzone_common_data():
@@ -49,15 +48,17 @@ www2 86400 IN A 192.168.10.30
 """
     new_zone = dns.zone.from_text(text=zone_with_common_data)
     new_zf_zone = ZFZone(new_zone)
-    
+
     yield new_zf_zone
+
 
 @pytest.fixture()
 def app_with_single_zone(app_new, zfzone_common_data):
     with app_new.app_context():
         zfzone_common_data.write_to_file()
-    
+
     yield app_new
+
 
 @pytest.fixture()
 def app_with_multi_zones(app_with_single_zone):
@@ -77,16 +78,19 @@ ns5 86400 IN A 192.168.1.255
     new_zf_zone = ZFZone(new_zone)
     with app_with_single_zone.app_context():
         new_zf_zone.write_to_file()
-    
+
     yield app_with_single_zone
+
 
 @pytest.fixture()
 def client_new(app_new):
     return app_new.test_client()
 
+
 @pytest.fixture()
 def client_single_zone(app_with_single_zone):
     return app_with_single_zone.test_client()
+
 
 @pytest.fixture()
 def client_multi_zone(app_with_multi_zones):

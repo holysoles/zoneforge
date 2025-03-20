@@ -4,10 +4,11 @@ ZoneForge is a web UI and REST API to manage [RFC1035](https://rfc-annotations.r
 
 ![GitHub License](https://img.shields.io/github/license/holysoles/zoneforge)
 ![Issues](https://img.shields.io/github/issues/holysoles/zoneforge)
+[![codecov](https://codecov.io/gh/holysoles/zoneforge/graph/badge.svg?token=AXBMFUU5G0)](https://codecov.io/gh/holysoles/zoneforge)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint)
 
 ![record management screenshot](lib/screenshots/record_management.png)
-
-
 
 ## About
 
@@ -58,7 +59,7 @@ git clone https://github.com/holysoles/zoneforge.git
 cd zoneforge
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements/prod.txt
 gunicorn app:production --bind 0.0.0.0:5000 --workers 4
 ```
 
@@ -156,6 +157,16 @@ For each domain that a given DNS server is authorative for:
 # Contributing
 
 Contributions are welcome. Please follow [conventional commit syntax](https://www.conventionalcommits.org/en/v1.0.0/).
+
+Install requirements for a dev environment with `pip install -r requirements/dev.txt`.
+
+Please note that black, pylint, and unit tests are run against Pull Requests. It is recommended you test these before committing:
+
+```bash
+black .
+pylint $(git ls-files '*.py')
+pytest
+```
 
 # Credits
 
