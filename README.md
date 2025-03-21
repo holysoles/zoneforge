@@ -38,7 +38,9 @@ Zone files are a commonly supported standard for serving [authoritative DNS](htt
 
 # Demo
 
-A public demo, with sample data, is [currently setup here](https://zoneforge.pve.dev).
+A public demo, with sample data, is [currently deployed here](https://zoneforge.pve.dev). It runs the latest released Docker image (polled every 15 minutes).
+
+Many replicas are deployed, load balanced with session affinity. Instances are torn down nightly to reset the container.
 
 # Installation
 
