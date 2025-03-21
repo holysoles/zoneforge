@@ -396,6 +396,45 @@ def test_zf_delete_a_record(app_with_single_zone, zfzone_common_data):
             assert True
 
 
+def test_zf_delete_txt_record(app_with_single_zone, zfzone_common_data):
+    zone_name = str(zfzone_common_data.origin)
+    record_name = "@"
+    record_type = "TXT"
+    record_ttl = "86400"
+    record_data = {"strings": "This domain name is reserved for use in documentation"}
+    record_index = 0
+
+    with app_with_single_zone.app_context():
+        existing_records = get_records(
+            zone_name=zone_name, record_name=record_name, record_type=record_type
+        )
+    assert len(existing_records) == 1
+    # pylint: disable=protected-access
+    assert record_data["strings"] == dns.rdata._escapify(
+        existing_records[0][0].strings[0]
+    )
+    # pylint: enable=protected-access
+
+    with app_with_single_zone.app_context():
+        _ = delete_record(
+            record_name=record_name,
+            record_type=record_type,
+            record_data=record_data,
+            record_ttl=record_ttl,
+            record_index=record_index,
+            zone_name=zone_name,
+        )
+
+    with app_with_single_zone.app_context():
+        try:
+            _ = get_records(
+                zone_name=zone_name, record_name=record_name, record_type=record_type
+            )
+            assert False
+        except NotFound:
+            assert True
+
+
 def test_zf_delete_single_record_under_rrset(app_with_single_zone, zfzone_common_data):
     zone_name = str(zfzone_common_data.origin)
     record_name = "@"

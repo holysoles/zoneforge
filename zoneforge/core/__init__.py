@@ -382,9 +382,8 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
             for slot in record_slots:
                 property_value = getattr(rdata, slot)
                 # perform any necessary transformations
-                if (
-                    property_value is not None
-                ):  # needs to be explicitly checked for None since dns.name.Name for a root record is evaluated to False (len=0)
+                # needs to be explicitly checked for None since dns.name.Name for a root record is evaluated to False (len=0)
+                if property_value is not None:
                     if slot == "strings":
                         txt = ""
                         prefix = ""
@@ -435,7 +434,10 @@ def request_to_rdata(
     # construct rdata class values from string in the proper order. We could pass these to a constructor as kwargs, but we don't currently have client side rdata slot typing
     rdata_str = ""
     for rdata_slot in get_rdata_class_slots(record_type):
-        rdata_str += f"{record_data[rdata_slot]} "
+        slot_data = record_data[rdata_slot]
+        if rdata_slot == "strings":
+            slot_data = f'"{slot_data}"'
+        rdata_str += f"{slot_data} "
     rdata = dns.rdata.from_text(rdclass=record_class, rdtype=record_type, tok=rdata_str)
 
     if record_comment:
