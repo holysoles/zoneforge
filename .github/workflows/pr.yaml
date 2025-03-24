@@ -32,7 +32,7 @@ jobs:
     - name: Run black
       uses: psf/black@8a737e727ac5ab2f1d4cf5876720ed276dc8dc4b # stable
       with:
-        args: ". --check"
+        options: ". --check --verbose"
 
   pylint:
     name: Python Lint
