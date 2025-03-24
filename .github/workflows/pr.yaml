@@ -5,7 +5,7 @@ on:
 
 jobs:
   pytest:
-    name: Check tests
+    name: Python Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -25,7 +25,7 @@ jobs:
           pytest
 
   black:
-    name: Check black
+    name: Python Style
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -35,7 +35,7 @@ jobs:
         args: ". --check"
 
   pylint:
-    name: Check pylint
+    name: Python Lint
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -53,3 +53,40 @@ jobs:
     - name: Run pylint
       run: |
         pylint $(git ls-files '*.py')
+
+  eslint:
+    name: JS Lint
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    - uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2
+    - name: Setup Bun and Run ESLint
+      run: |
+        bun init -y
+        bun add eslint @eslint/js
+        bunx eslint
+
+  stylelint:
+    name: CSS Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2
+      - name: Run stylelint
+        run: |
+          bun init -y
+          bun install stylelint stylelint-config-standard
+          bunx stylelint static/css/*.css
+
+  actionlint:
+    name: 'Github Actions YAML Lint'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+    - name: Download actionlint
+      run: |
+        VERSION="1.7.7"
+        ARCH=$(dpkg --print-architecture)
+        wget -c "https://github.com/rhysd/actionlint/releases/download/v${VERSION}/actionlint_${VERSION}_linux_${ARCH}.tar.gz" -O - | tar -xz
+    - name: Check workflow files
+      run: ./actionlint -shellcheck= -pyflakes= -color

@@ -3,7 +3,7 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin: 0;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 8px rgba(0 0 0 / 10%);
     border-radius: 8px;
 }
 
@@ -33,6 +33,7 @@ tr:nth-child(even) { background-color: #f9f9f9; }
 tr:hover { background-color: #f1f1f1; }
 
 /* Column widths */
+/* stylelint-disable */
 td:nth-child(1) { width: 5%; min-width: 10px; } /* Select */
 td:nth-child(2) { width: 15%; min-width: 180px; } /* Name */
 td:nth-child(3) { width: 10%; min-width: 100px; } /* Type */
@@ -40,6 +41,7 @@ td:nth-child(4) { width: 8%; min-width: 60px; } /* TTL */
 td:nth-child(5) { width: 35%; min-width: 250px; } /* Data */
 td:nth-child(6) { width: 15%; min-width: 150px; } /* Comments */
 td:nth-child(7) { width: 17%; min-width: 160px; } /* Actions */
+/* stylelint-enable */
 
 .actions {
     display: flex;
