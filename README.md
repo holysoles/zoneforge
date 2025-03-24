@@ -162,7 +162,7 @@ Contributions are welcome. Please follow [conventional commit syntax](https://ww
 
 Install requirements for a dev environment with `pip install -r requirements/dev.txt`.
 
-Please note that black, pylint, and unit tests are run against Pull Requests. It is recommended you test these before committing:
+Please note that linting and unit tests are run against Pull Requests. It is recommended you test at least the Python related jobs before committing:
 
 ```bash
 black .
