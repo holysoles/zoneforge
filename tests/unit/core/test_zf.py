@@ -23,14 +23,14 @@ $ORIGIN example.com.
 """
 
 
-def test_new_zfzone():
+def test_new_zfzone(tmp_path):
     """
     GIVEN a zone object
     WHEN it is new, from the minimum info
     THEN check that it correct sets the _zone, record_count properties
     """
     new_zone = dns.zone.from_text(text=ZONE_DATA_LIGHT)
-    new_zf_zone = ZFZone(new_zone)
+    new_zf_zone = ZFZone(new_zone, str(tmp_path))
     # Check the internal zone object
     # pylint: disable=protected-access
     assert new_zf_zone._zone == new_zone
@@ -38,14 +38,14 @@ def test_new_zfzone():
     assert new_zf_zone.record_count == 1  # should just get the NS record in enumeration
 
 
-def test_zfzone_to_response():
+def test_zfzone_to_response(tmp_path):
     """
     GIVEN a zfzone object
     WHEN its newly initialized
     THEN check that it can be converted to a response dictionary with expected keys
     """
     new_zone = dns.zone.from_text(text=ZONE_DATA_LIGHT)
-    new_zf_zone = ZFZone(new_zone)
+    new_zf_zone = ZFZone(new_zone, str(tmp_path))
     res = new_zf_zone.to_response()
     assert isinstance(res, dict)
     assert res.get("name")
@@ -53,14 +53,14 @@ def test_zfzone_to_response():
     assert res.get("soa")
 
 
-def test_zfzone_write_to_disk(app_new):
+def test_zfzone_write_to_disk(app_new, tmp_path):
     """
     GIVEN a zfzone object
     WHEN given an existing zone to update
     THEN check that it can be written to disk successfully to the expected location, and writing to disk is idempotent
     """
     new_zone = dns.zone.from_text(text=ZONE_DATA_LIGHT)
-    new_zf_zone = ZFZone(new_zone)
+    new_zf_zone = ZFZone(new_zone, str(tmp_path))
     new_zone_name = f"{str(new_zone.origin)}zone"
     with app_new.app_context():
         new_zf_zone.write_to_file()
@@ -73,14 +73,14 @@ def test_zfzone_write_to_disk(app_new):
     assert zone_written == new_zone
 
 
-def test_zfzone_get_records():
+def test_zfzone_get_records(tmp_path):
     """
     GIVEN a zfzone object
     WHEN records are present
     THEN check it can enumerate its records, and can be filtered by type
     """
     new_zone = dns.zone.from_text(text=ZONE_DATA_LIGHT)
-    new_zf_zone = ZFZone(new_zone)
+    new_zf_zone = ZFZone(new_zone, str(tmp_path))
     assert len(new_zf_zone.get_all_records()) == 1
     assert len(new_zf_zone.get_all_records(include_soa=True)) == 2
     assert len(new_zf_zone.get_all_records(record_type="A")) == 0
@@ -89,19 +89,25 @@ def test_zfzone_get_records():
 # get_zones()
 def test_zf_get_zones_new(app_new):
     with app_new.app_context():
-        zone_count_for_new_app = len(get_zones())
+        zone_count_for_new_app = len(
+            get_zones(zonefile_folder=app_new.config["ZONE_FILE_FOLDER"])
+        )
         assert zone_count_for_new_app == 0
 
 
 def test_zf_get_zones_single(app_with_single_zone):
     with app_with_single_zone.app_context():
-        zone_count_for_single_zone_app = len(get_zones())
+        zone_count_for_single_zone_app = len(
+            get_zones(zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"])
+        )
         assert zone_count_for_single_zone_app == 1
 
 
 def test_zf_get_zones_multi(app_with_multi_zones):
     with app_with_multi_zones.app_context():
-        zone_count_for_single_zone_app = len(get_zones())
+        zone_count_for_single_zone_app = len(
+            get_zones(zonefile_folder=app_with_multi_zones.config["ZONE_FILE_FOLDER"])
+        )
         assert zone_count_for_single_zone_app == 2
 
 
@@ -109,7 +115,10 @@ def test_zf_get_zones_specific(app_with_multi_zones):
     zone_name = "example.com"
     zone_dns_name = dns.name.from_text(zone_name)
     with app_with_multi_zones.app_context():
-        zone_list = get_zones(zone_name=zone_dns_name)
+        zone_list = get_zones(
+            zone_name=zone_dns_name,
+            zonefile_folder=app_with_multi_zones.config["ZONE_FILE_FOLDER"],
+        )
         assert len(zone_list) == 1
         assert isinstance(zone_list[0], dns.zone.Zone)
         assert zone_list[0].origin == zone_dns_name
@@ -123,7 +132,10 @@ def test_zf_create_new_zone(app_new, zfzone_common_data):
 
     with app_new.app_context():
         zone = create_zone(
-            zone_name=zone_dns_name, soa_rrset=soa_rrset, ns_rrset=ns_rrset
+            zone_name=zone_dns_name,
+            soa_rrset=soa_rrset,
+            ns_rrset=ns_rrset,
+            zonefile_folder=app_new.config["ZONE_FILE_FOLDER"],
         )
     assert isinstance(zone, ZFZone)
     assert zone.origin == zone_dns_name
@@ -138,7 +150,10 @@ def test_zf_create_existing_zone(app_with_single_zone, zfzone_common_data):
     try:
         with app_with_single_zone.app_context():
             _ = create_zone(
-                zone_name=zone_dns_name, soa_rrset=soa_rrset, ns_rrset=ns_rrset
+                zone_name=zone_dns_name,
+                soa_rrset=soa_rrset,
+                ns_rrset=ns_rrset,
+                zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
             )
         assert False
     except Forbidden:
@@ -150,7 +165,10 @@ def test_zf_delete_zone(app_with_single_zone, zfzone_common_data):
     zone_dns_name = zfzone_common_data.origin
 
     with app_with_single_zone.app_context():
-        deleted = delete_zone(zone_dns_name)
+        deleted = delete_zone(
+            zone_dns_name,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
+        )
         expected_filepath = os.path.join(
             app_with_single_zone.config["ZONE_FILE_FOLDER"], f"{zone_dns_name}zone"
         )
@@ -163,7 +181,10 @@ def test_zf_get_all_records(app_with_single_zone, zfzone_common_data):
     zone_dns_name = zfzone_common_data.origin
 
     with app_with_single_zone.app_context():
-        records = get_records(zone_dns_name)
+        records = get_records(
+            zone_dns_name,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
+        )
     assert len(records) > 0
     for record in records:
         assert isinstance(record, dns.rrset.RRset)
@@ -174,7 +195,11 @@ def test_zf_get_all_records_of_type(app_with_single_zone, zfzone_common_data):
     record_type = "NS"
 
     with app_with_single_zone.app_context():
-        records = get_records(zone_name=zone_dns_name, record_type=record_type)
+        records = get_records(
+            zone_name=zone_dns_name,
+            record_type=record_type,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
+        )
     assert len(records) > 0
     for record in records:
         assert isinstance(record, dns.rrset.RRset)
@@ -187,7 +212,11 @@ def test_zf_get_specific_record(app_with_single_zone, zfzone_common_data):
     relativized_name = zone_dns_name.relativize(zone_dns_name)
 
     with app_with_single_zone.app_context():
-        records = get_records(zone_name=zone_dns_name, record_name=record_name)
+        records = get_records(
+            zone_name=zone_dns_name,
+            record_name=record_name,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
+        )
     assert len(records) > 0
     for record in records:
         assert record.name == relativized_name
@@ -206,7 +235,9 @@ def test_zf_create_a_record(app_with_single_zone, zfzone_common_data):
             record_name=record_name,
             record_type=record_type,
             record_data=record_data,
+            record_ttl=86400,
             zone_name=zone_name,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
         )
     assert isinstance(created_record, dns.rrset.RRset)
     assert created_record.name == record_dns_name.relativize(
@@ -219,7 +250,10 @@ def test_zf_create_a_record(app_with_single_zone, zfzone_common_data):
 
     with app_with_single_zone.app_context():
         got_records = get_records(
-            zone_name=zone_name, record_name=record_name, record_type=record_type
+            zone_name=zone_name,
+            record_name=record_name,
+            record_type=record_type,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
         )
     assert len(got_records) == 1
     assert created_record == got_records[0]
@@ -237,7 +271,9 @@ def test_zf_create_cname_record(app_with_single_zone, zfzone_common_data):
             record_name=record_name,
             record_type=record_type,
             record_data=record_data,
+            record_ttl=86400,
             zone_name=zone_name,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
         )
     assert isinstance(created_record, dns.rrset.RRset)
     assert created_record.name == record_dns_name.relativize(
@@ -250,7 +286,10 @@ def test_zf_create_cname_record(app_with_single_zone, zfzone_common_data):
 
     with app_with_single_zone.app_context():
         got_records = get_records(
-            zone_name=zone_name, record_name=record_name, record_type=record_type
+            zone_name=zone_name,
+            record_name=record_name,
+            record_type=record_type,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
         )
     assert len(got_records) == 1
     assert created_record == got_records[0]
@@ -268,7 +307,9 @@ def test_zf_create_mx_record(app_with_single_zone, zfzone_common_data):
             record_name=record_name,
             record_type=record_type,
             record_data=record_data,
+            record_ttl=86400,
             zone_name=zone_name,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
         )
     assert isinstance(created_record, dns.rrset.RRset)
     assert created_record.name == record_dns_name.relativize(
@@ -281,7 +322,10 @@ def test_zf_create_mx_record(app_with_single_zone, zfzone_common_data):
 
     with app_with_single_zone.app_context():
         got_records = get_records(
-            zone_name=zone_name, record_name=record_name, record_type=record_type
+            zone_name=zone_name,
+            record_name=record_name,
+            record_type=record_type,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
         )
     assert len(got_records) == 1
     got_record_rdatas = list(got_records[0].items)
@@ -301,7 +345,9 @@ def test_zf_create_record_nowrite(app_with_single_zone, zfzone_common_data):
             record_name=record_name,
             record_type=record_type,
             record_data=record_data,
+            record_ttl=86400,
             zone_name=zone_name,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
             write=False,
         )
     assert isinstance(created_record, dns.rrset.RRset)
@@ -316,7 +362,10 @@ def test_zf_create_record_nowrite(app_with_single_zone, zfzone_common_data):
     try:
         with app_with_single_zone.app_context():
             _ = get_records(
-                zone_name=zone_name, record_name=record_name, record_type=record_type
+                zone_name=zone_name,
+                record_name=record_name,
+                record_type=record_type,
+                zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
             )
         assert False
     except NotFound:
@@ -333,7 +382,10 @@ def test_zf_update_a_record(app_with_single_zone, zfzone_common_data):
 
     with app_with_single_zone.app_context():
         existing_records = get_records(
-            zone_name=zone_name, record_name=record_name, record_type=record_type
+            zone_name=zone_name,
+            record_name=record_name,
+            record_type=record_type,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
         )
     for key, data in record_data.items():
         assert data != getattr(existing_records[0][0], key)
@@ -343,8 +395,10 @@ def test_zf_update_a_record(app_with_single_zone, zfzone_common_data):
             record_name=record_name,
             record_type=record_type,
             record_data=record_data,
+            record_ttl=86400,
             zone_name=zone_name,
             record_index=record_index,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
         )
     assert isinstance(updated_record, dns.rrset.RRset)
     updated_rdata = updated_record[0]
@@ -353,7 +407,10 @@ def test_zf_update_a_record(app_with_single_zone, zfzone_common_data):
 
     with app_with_single_zone.app_context():
         got_records = get_records(
-            zone_name=zone_name, record_name=record_name, record_type=record_type
+            zone_name=zone_name,
+            record_name=record_name,
+            record_type=record_type,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
         )
     assert len(got_records) == 1
     assert updated_rdata == got_records[0][0]
@@ -370,7 +427,10 @@ def test_zf_delete_a_record(app_with_single_zone, zfzone_common_data):
 
     with app_with_single_zone.app_context():
         existing_records = get_records(
-            zone_name=zone_name, record_name=record_name, record_type=record_type
+            zone_name=zone_name,
+            record_name=record_name,
+            record_type=record_type,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
         )
     assert len(existing_records) == 1
     for key, data in record_data.items():
@@ -384,12 +444,16 @@ def test_zf_delete_a_record(app_with_single_zone, zfzone_common_data):
             record_ttl=record_ttl,
             record_index=record_index,
             zone_name=zone_name,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
         )
 
     with app_with_single_zone.app_context():
         try:
             _ = get_records(
-                zone_name=zone_name, record_name=record_name, record_type=record_type
+                zone_name=zone_name,
+                record_name=record_name,
+                record_type=record_type,
+                zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
             )
             assert False
         except NotFound:
@@ -406,7 +470,10 @@ def test_zf_delete_txt_record(app_with_single_zone, zfzone_common_data):
 
     with app_with_single_zone.app_context():
         existing_records = get_records(
-            zone_name=zone_name, record_name=record_name, record_type=record_type
+            zone_name=zone_name,
+            record_name=record_name,
+            record_type=record_type,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
         )
     assert len(existing_records) == 1
     # pylint: disable=protected-access
@@ -423,12 +490,16 @@ def test_zf_delete_txt_record(app_with_single_zone, zfzone_common_data):
             record_ttl=record_ttl,
             record_index=record_index,
             zone_name=zone_name,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
         )
 
     with app_with_single_zone.app_context():
         try:
             _ = get_records(
-                zone_name=zone_name, record_name=record_name, record_type=record_type
+                zone_name=zone_name,
+                record_name=record_name,
+                record_type=record_type,
+                zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
             )
             assert False
         except NotFound:
@@ -445,7 +516,10 @@ def test_zf_delete_single_record_under_rrset(app_with_single_zone, zfzone_common
 
     with app_with_single_zone.app_context():
         existing_records = get_records(
-            zone_name=zone_name, record_name=record_name, record_type=record_type
+            zone_name=zone_name,
+            record_name=record_name,
+            record_type=record_type,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
         )
     original_length = len(existing_records[0].items)
     assert original_length >= 1
@@ -462,10 +536,14 @@ def test_zf_delete_single_record_under_rrset(app_with_single_zone, zfzone_common
             record_ttl=record_ttl,
             record_index=record_index,
             zone_name=zone_name,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
         )
 
     with app_with_single_zone.app_context():
         after_records = get_records(
-            zone_name=zone_name, record_name=record_name, record_type=record_type
+            zone_name=zone_name,
+            record_name=record_name,
+            record_type=record_type,
+            zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
         )
     assert len(after_records[0].items) == original_length - 1

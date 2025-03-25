@@ -1,5 +1,6 @@
 import dns.name
 from flask_restx import Namespace, Resource, reqparse, fields
+from flask import current_app
 from werkzeug.exceptions import *  # pylint: disable=wildcard-import,unused-wildcard-import,redefined-builtin
 from zoneforge.core import (
     get_zones,
@@ -133,7 +134,7 @@ class DnsZone(Resource):
         zones_response = []
 
         dns_name = None
-        zones = get_zones(dns_name)
+        zones = get_zones(current_app.config["ZONE_FILE_FOLDER"], dns_name)
         for zone in zones:
             zones_response.append(zone.to_response())
         return zones_response
@@ -149,7 +150,7 @@ class DnsZone(Resource):
         zone_name = args.get("name")
         dns_name = dns.name.from_text(zone_name)
 
-        zones = get_zones(dns_name)
+        zones = get_zones(current_app.config["ZONE_FILE_FOLDER"], dns_name)
         if len(zones) != 0:
             raise BadRequest("A zone with that name already exists.")
 
@@ -167,6 +168,7 @@ class DnsZone(Resource):
         }
         soa_rrset = create_record(
             zone_name=zone_name,
+            zonefile_folder=current_app.config["ZONE_FILE_FOLDER"],
             record_name="@",
             record_type="SOA",
             record_data=soa_record_data,
@@ -178,6 +180,7 @@ class DnsZone(Resource):
         }
         primary_ns_rrset = create_record(
             zone_name=zone_name,
+            zonefile_folder=current_app.config["ZONE_FILE_FOLDER"],
             record_name="@",
             record_type="NS",
             record_data=primary_ns_record_data,
@@ -192,6 +195,7 @@ class DnsZone(Resource):
             primary_ns_a_record_data = {"address": args["primary_ns_ip"]}
             primary_ns_a_rrset = create_record(
                 zone_name=zone_name,
+                zonefile_folder=current_app.config["ZONE_FILE_FOLDER"],
                 record_name=f"{primary_ns}",
                 record_type="A",
                 record_data=primary_ns_a_record_data,
@@ -203,6 +207,7 @@ class DnsZone(Resource):
 
         new_zone = create_zone(
             zone_name=dns_name,
+            zonefile_folder=current_app.config["ZONE_FILE_FOLDER"],
             soa_rrset=soa_rrset,
             ns_rrset=primary_ns_rrset,
             ns_a_rrset=primary_ns_a_rrset,
@@ -220,7 +225,9 @@ class SpecificDnsZone(Resource):
         """
         dns_name = dns.name.from_text(zone_name)
 
-        zone = get_zones(dns_name)[0]
+        zone = get_zones(
+            zonefile_folder=current_app.config["ZONE_FILE_FOLDER"], zone_name=dns_name
+        )[0]
         if not zone:
             raise NotFound("A zone with that name does not exist.")
 
@@ -235,7 +242,9 @@ class SpecificDnsZone(Resource):
 
         dns_name = dns.name.from_text(zone_name)
 
-        zones = get_zones(dns_name)
+        zones = get_zones(
+            zonefile_folder=current_app.config["ZONE_FILE_FOLDER"], zone_name=dns_name
+        )
         if len(zones) != 1:
             raise BadRequest(
                 "A zone with that name does not currently exist. Zone names are not currently mutable."
@@ -255,6 +264,7 @@ class SpecificDnsZone(Resource):
         }
         _ = update_record(
             zone_name=zone_name,
+            zonefile_folder=current_app.config["ZONE_FILE_FOLDER"],
             record_name="@",
             record_type="SOA",
             record_data=soa_record_data,
@@ -262,7 +272,9 @@ class SpecificDnsZone(Resource):
             record_index=0,
         )
 
-        update_zone = get_zones(dns_name)
+        update_zone = get_zones(
+            zonefile_folder=current_app.config["ZONE_FILE_FOLDER"], zone_name=dns_name
+        )
         update_zone_response = update_zone[0].to_response()
         return update_zone_response
 
@@ -273,6 +285,8 @@ class SpecificDnsZone(Resource):
         """
         dns_name = dns.name.from_text(zone_name)
 
-        if delete_zone(dns_name):
+        if delete_zone(
+            zonefile_folder=current_app.config["ZONE_FILE_FOLDER"], zone_name=dns_name
+        ):
             return {}
         raise NotFound("A zone with that name does not exist.")
