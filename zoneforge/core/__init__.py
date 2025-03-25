@@ -18,7 +18,6 @@ import dns.rrset
 import dns.versioned
 import dns.transaction
 from werkzeug.exceptions import *  # pylint: disable=wildcard-import,unused-wildcard-import,redefined-builtin
-from flask import current_app
 
 RECORD_FIELDS_TO_RELATIVIZE = [
     "target",
@@ -38,9 +37,10 @@ class ZFZone(dns.zone.Zone):
 
     # We don't want to call super init since we don't have the same information that the dns.zone.Zone needs
     # pylint: disable=super-init-not-called
-    def __init__(self, zone: dns.zone.Zone):
+    def __init__(self, zone: dns.zone.Zone, zonefile_folder: str):
         self._zone = zone  # Store the original zone instance
         self.record_count = len(self.get_all_records())
+        self.zonefile_folder = zonefile_folder
 
     # pylint: enable=super-init-not-called
 
@@ -68,9 +68,7 @@ class ZFZone(dns.zone.Zone):
         zone_name = str(self.origin)
         with self.writer() as txn:
             txn.update_serial(value=update_timestamp, relative=False)
-        zone_file_path = join(
-            current_app.config["ZONE_FILE_FOLDER"], f"{zone_name}zone"
-        )
+        zone_file_path = join(self.zonefile_folder, f"{zone_name}zone")
 
         logger.debug("Writing zone %s to '%s'", self.origin, zone_file_path)
         self.to_file(f=zone_file_path, want_comments=True, want_origin=True)
@@ -94,16 +92,14 @@ class ZFZone(dns.zone.Zone):
         return list(all_records)
 
 
-def get_zones(zone_name: dns.name.Name = None) -> list[ZFZone]:
+def get_zones(zonefile_folder: str, zone_name: dns.name.Name = None) -> list[ZFZone]:
     zonefile_map = {}
     zones = []
     if zone_name:
         logger.debug("Getting zone object for origin '%s'", zone_name)
-        zonefile_map[zone_name] = join(
-            current_app.config["ZONE_FILE_FOLDER"], f"{zone_name}zone"
-        )
+        zonefile_map[zone_name] = join(zonefile_folder, f"{zone_name}zone")
     else:
-        zonefile_pattern = join(current_app.config["ZONE_FILE_FOLDER"], "*zone")
+        zonefile_pattern = join(zonefile_folder, "*zone")
         zone_files = glob.glob(zonefile_pattern)
         for filepath in zone_files:
             filename = basename(filepath)
@@ -121,7 +117,7 @@ def get_zones(zone_name: dns.name.Name = None) -> list[ZFZone]:
                 zone_factory=dns.versioned.Zone,
                 relativize=True,
             )
-            zfzone = ZFZone(zone)
+            zfzone = ZFZone(zone=zone, zonefile_folder=zonefile_folder)
             zones.append(zfzone)
         except Exception as e:
             raise InternalServerError(
@@ -133,17 +129,18 @@ def get_zones(zone_name: dns.name.Name = None) -> list[ZFZone]:
 def create_zone(
     *,
     zone_name: dns.name.Name,
+    zonefile_folder: str,
     soa_rrset: dns.rrset.RRset,
     ns_rrset: dns.rrset.RRset,
     ns_a_rrset: dns.rrset.RRset = None,
 ) -> ZFZone:
-    zone_file_path = join(current_app.config["ZONE_FILE_FOLDER"], f"{zone_name}zone")
+    zone_file_path = join(zonefile_folder, f"{zone_name}zone")
     if exists(zone_file_path):
         raise Forbidden("A zone with that name already exists.")
     new_zone = dns.zone.Zone(
         origin=zone_name,
     )
-    new_zfzone = ZFZone(new_zone)
+    new_zfzone = ZFZone(zone=new_zone, zonefile_folder=zonefile_folder)
     with new_zfzone.writer() as txn:
         txn.add(soa_rrset)
         txn.add(ns_rrset)
@@ -153,8 +150,8 @@ def create_zone(
     return new_zfzone
 
 
-def delete_zone(zone_name: dns.name.Name) -> bool:
-    zone_file_name = join(current_app.config["ZONE_FILE_FOLDER"], f"{zone_name}zone")
+def delete_zone(zone_name: dns.name.Name, zonefile_folder: str) -> bool:
+    zone_file_name = join(zonefile_folder, f"{zone_name}zone")
     if exists(zone_file_name):
         logger.info("Removing zone %s", zone_name)
         remove(zone_file_name)
@@ -164,15 +161,16 @@ def delete_zone(zone_name: dns.name.Name) -> bool:
 
 def get_records(
     zone_name: str,
+    zonefile_folder: str,
     *,
     record_name: str = None,
     record_type: str = None,
     include_soa: bool = False,
 ) -> list[dns.rrset.RRset]:
-    zone = get_zones(zone_name)
+    zone = get_zones(zonefile_folder=zonefile_folder, zone_name=zone_name)
     if not zone:
         raise NotFound("the specified zone does not exist.")
-    zone = ZFZone(zone[0])
+    zone = ZFZone(zone=zone[0], zonefile_folder=zonefile_folder)
 
     if record_name:
         try:
@@ -213,9 +211,10 @@ def create_record(
     record_name: str,
     record_type: str,
     record_data: dict,
+    record_ttl: int,
+    zonefile_folder: str,
     zone_name: dns.name.Name = None,
     record_class: dns.rdataclass.RdataClass = "IN",
-    record_ttl: int = None,
     record_comment: str = None,
     write: bool = True,
 ) -> dns.rrset.RRset:
@@ -225,20 +224,16 @@ def create_record(
     if write:
         if not zone_name:
             raise ValueError("A zone_name must be provided to write to a zone file.")
-        zone = get_zones(zone_name)
+        zone = get_zones(zonefile_folder=zonefile_folder, zone_name=zone_name)
         if not zone:
             raise NotFound("the specified zone does not exist.")
         zone = zone[0]
         matching_rrset = zone.get_rrset(name=record_name, rdtype=record_type)
 
-    if not record_ttl:
-        record_ttl = current_app.config["DEFAULT_ZONE_TTL"]
-
     new_rdata = request_to_rdata(
         zone_name=zone_name,
         record_type=record_type,
         record_data=record_data,
-        record_ttl=record_ttl,
         record_class=record_class,
         record_comment=record_comment,
     )
@@ -270,17 +265,16 @@ def create_record(
 def update_record(
     *,
     zone_name: str,
+    zonefile_folder: str,
     record_name: str,
     record_type: str,
     record_data: dict,
     record_index: int,
+    record_ttl: int,
     record_class: dns.rdataclass.RdataClass = "IN",
-    record_ttl: int = None,
     record_comment: str = None,
 ) -> dns.rrset.RRset:
-    zone = get_zones(zone_name)[0]
-    if not record_ttl:
-        record_ttl = current_app.config["DEFAULT_ZONE_TTL"]
+    zone = get_zones(zonefile_folder=zonefile_folder, zone_name=zone_name)[0]
 
     matching_rrset = zone.get_rrset(name=record_name, rdtype=record_type)
     if not matching_rrset:
@@ -290,7 +284,6 @@ def update_record(
         zone_name=zone_name,
         record_type=record_type,
         record_data=record_data,
-        record_ttl=record_ttl,
         record_class=record_class,
         record_comment=record_comment,
     )
@@ -324,6 +317,7 @@ def update_record(
 def delete_record(
     *,
     zone_name: str,
+    zonefile_folder: str,
     record_name: str,
     record_type: str,
     record_data: dict,
@@ -332,13 +326,12 @@ def delete_record(
     record_index: int,  # pylint: disable=unused-argument
     record_class: dns.rdataclass.RdataClass = "IN",
 ) -> bool:
-    zone = get_zones(zone_name)[0]
+    zone = get_zones(zonefile_folder=zonefile_folder, zone_name=zone_name)[0]
 
     target_rdata = request_to_rdata(
         zone_name=zone_name,
         record_type=record_type,
         record_data=record_data,
-        record_ttl=record_ttl,
         record_class=record_class,
     )
     with zone.writer() as txn:
@@ -415,13 +408,9 @@ def request_to_rdata(
     record_type: str,
     record_data: dict,
     record_class: dns.rdataclass.RdataClass,
-    record_ttl: int = None,
     record_comment: str = None,
 ) -> dns.rdata.Rdata:
     origin = dns.name.from_text(text=zone_name)
-
-    if not record_ttl:
-        record_ttl = current_app.config["DEFAULT_ZONE_TTL"]
 
     # relativize the record data fields that are names
     for record_field in RECORD_FIELDS_TO_RELATIVIZE:
