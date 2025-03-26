@@ -320,7 +320,6 @@ def delete_record(
     record_name: str,
     record_type: str,
     record_data: dict,
-    record_ttl: int,  # pylint: disable=unused-argument #TODO remove
     # we aren't using record_index at the moment, but it is required in the event it is deemed necessary for use
     record_index: int,  # pylint: disable=unused-argument
     record_class: dns.rdataclass.RdataClass = "IN",

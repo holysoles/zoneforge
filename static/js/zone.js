@@ -126,7 +126,6 @@ async function deleteRecord(row) {
     try {
         const requestBody = Object.fromEntries([
             ['type', row.querySelector('[data-field="type"]').textContent.trim()],
-            ['ttl', row.querySelector('[data-field="ttl"]')?.textContent.trim()],
             ['data', getRecordDataFromCell(row.querySelectorAll('[data-field="data"]'))],
             ['comment', row.querySelector('[data-field="comment"]')?.textContent.trim()],
             ['index', row.getAttribute('data-record-index')]
