@@ -96,8 +96,10 @@ def create_app():
         return render_template(
             "home.html.j2",
             zones=zones,
-            modal=zoneforge.modal_data.ZONE_CREATION,
-            modal_api="/api/zones",
+            modals=[
+                zoneforge.modal_data.ZONE_CREATION,
+                zoneforge.modal_data.ZONE_CREATION_XFR,
+            ],
             modal_default_values=zone_create_defaults,
         )
 
