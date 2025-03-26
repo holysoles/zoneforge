@@ -12,6 +12,7 @@ def zone_from_zone_transfer(
     nameserver_ip: str = None,
     nameserver_port: int = 53,
     use_udp: bool = False,
+    transfer_timeout=60,
 ) -> ZFZone:
     """
     Initiate a DNS zone transfer for the specified zone from the specified nameserver. Saves the resultant zonefile to the specified zonefile folder.
@@ -35,14 +36,19 @@ def zone_from_zone_transfer(
     try:
         dns.query.inbound_xfr(
             where=nameserver_ip,
-            txn_manager=new_zone,
+            txn_manager=new_zfzone,
             port=nameserver_port,
             udp_mode=udp_mode,
+            lifetime=transfer_timeout,
         )
     except dns.xfr.TransferError as e:
         raise BadRequest(
             "Zone transfer refused by nameserver. Ensure zone transfers are enabled for the zone."
-        )
+        ) from e
+    except dns.exception.Timeout as e:
+        raise BadGateway(
+            "Zone transfer attempt timed out. Ensure the nameserver is available and consider increasing the transfer timeout."
+        ) from e
     new_zfzone.write_to_file()
 
     return new_zfzone

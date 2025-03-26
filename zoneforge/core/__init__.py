@@ -287,8 +287,6 @@ def update_record(
         record_class=record_class,
         record_comment=record_comment,
     )
-    # We always want a clean rrset to return, since rdata isn't associated with a name
-    new_rrset = dns.rrset.from_rdata(record_name, record_ttl, new_rdata)
     # replace the original rdata of the record we're updating with the new rdata
     try:
         rdata_to_change = list(matching_rrset.items)[record_index]
@@ -311,7 +309,8 @@ def update_record(
         record_data,
     )
     zone.write_to_file()
-    return new_rrset
+    # We always want a clean rrset to return, since rdata isn't associated with a name
+    return dns.rrset.from_rdata(record_name, record_ttl, new_rdata)
 
 
 def delete_record(
@@ -321,7 +320,7 @@ def delete_record(
     record_name: str,
     record_type: str,
     record_data: dict,
-    record_ttl: int,
+    record_ttl: int,  # pylint: disable=unused-argument #TODO remove
     # we aren't using record_index at the moment, but it is required in the event it is deemed necessary for use
     record_index: int,  # pylint: disable=unused-argument
     record_class: dns.rdataclass.RdataClass = "IN",
@@ -401,7 +400,6 @@ def record_to_response(records: list[dns.rrset.RRset]) -> dict:
     return transformed_records
 
 
-# pylint: disable=too-many-arguments
 def request_to_rdata(
     *,
     zone_name: str,
@@ -436,9 +434,6 @@ def request_to_rdata(
         rdata.__setstate__(rdata_dict)
 
     return rdata
-
-
-# pylint: enable=too-many-arguments
 
 
 def get_record_type_map(record_type_name: str = None):

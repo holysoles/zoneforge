@@ -151,6 +151,12 @@ zone_transfer_parser.add_argument(
     help="Whether or not the transfer should attempted to be initiated over UDP. Default is to use TCP.",
     required=False,
 )
+zone_transfer_parser.add_argument(
+    "transfer_timeout",
+    type=str,
+    help="How long to wait, in seconds, for the entire transfer to complete. 60s by default.",
+    required=False,
+)
 
 
 @api.route("")
@@ -336,12 +342,15 @@ class DnsZoneInboundTransfer(Resource):
         primary_ns_ip = args.get("primary_ns_ip")
         if primary_ns_ip:
             kw_args["nameserver_ip"] = primary_ns_ip
-        primary_ns_port = args.get("primary_ns_port")
+        primary_ns_port = int(args.get("primary_ns_port"))
         if primary_ns_port:
             kw_args["nameserver_port"] = primary_ns_port
         use_udp = args.get("use_udp")
         if use_udp:
             kw_args["use_udp"] = use_udp
+        xfr_timeout = args.get("transfer_timeout")
+        if xfr_timeout:
+            kw_args["transfer_timeout"] = int(xfr_timeout)
 
         new_zone = zone_from_zone_transfer(
             zone_name=zone_name_clean,

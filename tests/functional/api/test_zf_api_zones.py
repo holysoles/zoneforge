@@ -1,3 +1,27 @@
+from datetime import datetime
+import dns.rdatatype
+import dns.xfr
+from tests.functional.dnspython.tests.nanonameserver import Server
+
+today_serial = datetime.now().strftime("%Y%m%d")
+XFR_RESPONSE = f"""id 1
+opcode QUERY
+rcode NOERROR
+flags AA
+;QUESTION
+example.com. IN AXFR
+;ANSWER
+@ 36000 IN SOA ns1 hostmaster {today_serial} 28800 1800 2592000 86400 ; minimum (1 day)
+@ 86400 IN NS ns1
+@ 86400 IN MX 10 mail
+@ 86400 IN TXT "This domain name is reserved for use in documentation"
+mail 86400 IN A 192.168.2.10
+ns1 86400 IN A 192.168.1.10
+ns2 86400 IN A 192.168.1.20
+@ 36000 IN SOA ns1 hostmaster {today_serial} 28800 1800 2592000 86400 ; minimum (1 day)
+"""
+
+
 def test_zf_api_zone_get_empty(client_new):
     res = client_new.get("/api/zones")
     assert res.status_code == 200
@@ -139,3 +163,27 @@ def test_zf_api_zone_delete_multi(client_multi_zone, zfzone_common_data):
     assert res.status_code == 200
     remaining_zones = client_multi_zone.get("/api/zones")
     assert len(remaining_zones.json) >= 1
+
+
+class XFRNanoNameserver(Server):
+    def __init__(self):
+        super().__init__(origin=dns.name.from_text("example.com"))
+
+    def handle(self, request):
+        text = XFR_RESPONSE
+        r = dns.message.from_text(text, one_rr_per_rrset=True, origin=self.origin)
+        r.id = request.message.id
+        return r
+
+
+def test_zf_api_zone_transfer(client_new, zfzone_common_data):
+    origin = zfzone_common_data.origin.to_text()
+
+    with XFRNanoNameserver() as ns:
+        transfer_data = {
+            "zone_name": origin,
+            "primary_ns_ip": ns.tcp_address[0],
+            "primary_ns_port": ns.tcp_address[1],
+        }
+        res = client_new.post("/api/zones/transfer", json=transfer_data)
+    assert res.status_code == 200
