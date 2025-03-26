@@ -166,7 +166,7 @@ Please note that linting and unit tests are run against Pull Requests. It is rec
 
 ```bash
 black .
-pylint $(git ls-files '*.py')
+pylint $(git ls-files '*.py' | grep -v dnspython)
 pytest
 ```
 

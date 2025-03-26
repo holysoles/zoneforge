@@ -52,7 +52,7 @@ jobs:
         pip install -r requirements/ci.txt
     - name: Run pylint
       run: |
-        pylint $(git ls-files '*.py')
+        pylint $(git ls-files '*.py' | grep -v dnspython)
 
   eslint:
     name: JS Lint
