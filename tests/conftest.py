@@ -6,14 +6,15 @@ import dns.zone
 from app import create_app
 from zoneforge.core import ZFZone
 
-ZONE_WITH_COMMON_DATA = """
+today_serial = datetime.now().strftime("%Y%m%d")
+ZONE_WITH_COMMON_DATA = f"""
 $ORIGIN example.com.
 @ 86400 IN NS ns1
 @ 86400 IN MX 10 mail
 @ 86400 IN MX 20 mail2
 @ 86400 IN A 192.168.10.10
 @ 86400 IN TXT "This domain name is reserved for use in documentation"
-@ 36000 IN SOA ns1 hostmaster %s 28800 1800 2592000 86400 ; minimum (1 day)
+@ 36000 IN SOA ns1 hostmaster {today_serial} 28800 1800 2592000 86400 ; minimum (1 day)
 ftp 86400 IN CNAME @
 mail 86400 IN A 192.168.2.10
 mail2 86400 IN A 192.168.2.20
@@ -24,9 +25,7 @@ webmail 86400 IN CNAME @
 www 86400 IN CNAME @ ; comments can be used to additional document information
 www2 86400 IN A 192.168.10.20
 www2 86400 IN A 192.168.10.30
-""" % (
-    datetime.now().strftime("%Y%m%d")
-)
+"""
 
 
 # pylint: disable=redefined-outer-name
