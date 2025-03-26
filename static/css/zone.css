@@ -1,5 +1,5 @@
 /* Table structure */
-table {
+table.zones {
     width: 100%;
     border-collapse: collapse;
     margin: 0;
@@ -8,39 +8,49 @@ table {
 }
 
 /* Cell styles */
-th, td {
+.zone-row th, .zone-row td  {
     padding: 0.5rem;
     text-align: left;
     border: 1px solid #ddd;
     min-height: 42px;
 }
 
-th {
+.zone-row th {
     background-color: #f4f4f9;
     font-weight: bold;
 }
 
-th a {
+.zone-row th a {
     text-decoration: none;
     color: inherit;
 }
 
-th .sort-order {
+.zone-row th .sort-order {
     float: right;
 }
 
-tr:nth-child(even) { background-color: #f9f9f9; }
-tr:hover { background-color: #f1f1f1; }
+tr.zone-row:nth-child(even) { background-color: #f9f9f9; }
+tr.zone-row:hover { background-color: #f1f1f1; }
+
+/* New record row */
+.new-record td {
+    background-color: #f8f8f8;
+}
+
+.new-record input::placeholder {
+    color: #999;
+    font-style: italic;
+}
 
 /* Column widths */
 /* stylelint-disable */
-td:nth-child(1) { width: 5%; min-width: 10px; } /* Select */
-td:nth-child(2) { width: 15%; min-width: 180px; } /* Name */
-td:nth-child(3) { width: 10%; min-width: 100px; } /* Type */
-td:nth-child(4) { width: 8%; min-width: 60px; } /* TTL */
-td:nth-child(5) { width: 35%; min-width: 250px; } /* Data */
-td:nth-child(6) { width: 15%; min-width: 150px; } /* Comments */
-td:nth-child(7) { width: 17%; min-width: 160px; } /* Actions */
+.zone-row td:nth-child(1) { width: 5%; min-width: 10px; } /* Select */
+.zone-row td:nth-child(2) { width: 15%; min-width: 180px; } /* Name */
+.zone-row td:nth-child(3) { width: 10%; min-width: 100px; } /* Type */
+.zone-row td:nth-child(4) { width: 8%; min-width: 60px; } /* TTL */
+.zone-row td:nth-child(5) { width: 35%; min-width: 250px; } /* Data */
+.zone-row td:nth-child(6) { width: 15%; min-width: 150px; } /* Comments */
+.zone-row td:nth-child(7) { width: 17%; min-width: 160px; } /* Actions */
 /* stylelint-enable */
 
 .actions {
@@ -77,16 +87,6 @@ td:nth-child(7) { width: 17%; min-width: 160px; } /* Actions */
     background-color: white;
     min-height: 36px;
     box-sizing: border-box;
-}
-
-/* New record row */
-.new-record td {
-    background-color: #f8f8f8;
-}
-
-.new-record input::placeholder {
-    color: #999;
-    font-style: italic;
 }
 
 /* Header row styling */

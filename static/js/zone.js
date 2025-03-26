@@ -274,6 +274,9 @@ function formatLabel(label) {
 
 async function updateDataFieldsForType(typeSelect) {
     const selectedType = typeSelect.value;
+    if (!selectedType) {
+        return
+    }
     const row = typeSelect.closest('tr');
     const dataRows = row.querySelector('.data-rows');
     const existingEntries = dataRows.querySelectorAll('.data-entry');

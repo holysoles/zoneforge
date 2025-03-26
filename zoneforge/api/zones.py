@@ -10,6 +10,7 @@ from zoneforge.core import (
     update_record,
     friendly_email_to_zone_format,
 )
+from zoneforge.core.transfer import zone_from_zone_transfer
 from zoneforge.api.records import dns_record_model
 
 api = Namespace("zones", description="DNS zone related operations")
@@ -99,28 +100,56 @@ zone_put_parser.add_argument(
     "primary_ns", type=str, help="Primary nameserver for the zone", required=True
 )
 
-soa_example = {
-    "name": "@",
-    "type": "SOA",
-    "ttl": 36000,
-    "comment": " minimum (1 day)",
-    "data": {
-        "minimum": "86400",
-        "expire": "2592000",
-        "retry": "1800",
-        "refresh": "28800",
-        "serial": "20250116",
-        "rname": "hostmaster",
-        "mname": "ns1",
-    },
-}
 zone_model = api.model(
     "DnsZone",
     {
         "name": fields.String(example="example.com."),
         "record_count": fields.Integer(example=13),
-        "soa": fields.Nested(dns_record_model, example=soa_example),
+        "soa": fields.Nested(
+            dns_record_model,
+            example={
+                "name": "@",
+                "type": "SOA",
+                "ttl": 36000,
+                "comment": " minimum (1 day)",
+                "data": {
+                    "minimum": "86400",
+                    "expire": "2592000",
+                    "retry": "1800",
+                    "refresh": "28800",
+                    "serial": "20250116",
+                    "rname": "hostmaster",
+                    "mname": "ns1",
+                },
+            },
+        ),
     },
+)
+
+zone_transfer_parser = reqparse.RequestParser()
+zone_transfer_parser.add_argument(
+    "zone_name",
+    type=str,
+    help="Name of the zone to initiate a transfer for.",
+    required=True,
+)
+zone_transfer_parser.add_argument(
+    "primary_ns_ip",
+    type=str,
+    help="IP to connect to for the zone transfer. If not provided, the primary nameserver for the Zone is looked up via SOA query.",
+    required=False,
+)
+zone_transfer_parser.add_argument(
+    "primary_ns_port",
+    type=str,
+    help="Port to connect to for the zone transfer. If not provided, port 53 is assumed.",
+    required=False,
+)
+zone_transfer_parser.add_argument(
+    "use_udp",
+    type=bool,
+    help="Whether or not the transfer should attempted to be initiated over UDP. Default is to use TCP.",
+    required=False,
 )
 
 
@@ -290,3 +319,33 @@ class SpecificDnsZone(Resource):
         ):
             return {}
         raise NotFound("A zone with that name does not exist.")
+
+
+@api.route("/transfer")
+class DnsZoneInboundTransfer(Resource):
+    @api.expect(zone_transfer_parser)
+    @api.marshal_with(zone_model)
+    def post(self):
+        """
+        Initiates a zone transfer (XFR) from an existing authoritative nameserver.
+        """
+        args = zone_transfer_parser.parse_args()
+        zone_name_clean = str(dns.name.from_text(args["zone_name"]))
+
+        kw_args = {}
+        primary_ns_ip = args.get("primary_ns_ip")
+        if primary_ns_ip:
+            kw_args["nameserver_ip"] = primary_ns_ip
+        primary_ns_port = args.get("primary_ns_port")
+        if primary_ns_port:
+            kw_args["nameserver_port"] = primary_ns_port
+        use_udp = args.get("use_udp")
+        if use_udp:
+            kw_args["use_udp"] = use_udp
+
+        new_zone = zone_from_zone_transfer(
+            zone_name=zone_name_clean,
+            zonefile_folder=current_app.config["ZONE_FILE_FOLDER"],
+            **kw_args,
+        )
+        return new_zone.to_response()
