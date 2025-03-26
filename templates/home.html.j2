@@ -1,12 +1,16 @@
 {% extends 'layout.html.j2' %}
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}" />
+{% endblock %}
 {% block content %}
     <div class="container">
         <div class="header-row">
             <h3>Zone Management</h3>
             <div class="home-options">
-                {% if modal is defined %}
-                    <button class="add-zone" onclick="document.querySelector('#{{ modal.id }}').classList.toggle('modal-active')">{{ modal['open-char'] }}</button>
-                {% endif %}
+                {% for modal in modals %}
+                    <button class="home-option" onclick="document.querySelector('#{{ modal.id }}').classList.toggle('modal-active')">{{ modal['open-char'] }}</button>
+                {% endfor %}
             </div>
         </div>
         <div class="zones">
@@ -19,9 +23,9 @@
             </div>
             {% endfor %}
         </div>
-        {% if modal is defined %}
+        {% for modal in modals %}
             {% include 'modal.html.j2' %}
-        {% endif %}
+        {% endfor %}
     </div>
     <script src="{{ url_for('static', filename='js/modal.js') }}"></script>
 {% endblock %}

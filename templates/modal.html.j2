@@ -9,23 +9,29 @@
                 {% if section.heading %}
                 <h3>{{ section.heading }}</h3>
                 {% endif %}
-                <div class="form-group">
+                <table class="form-group">
                 {% for input in section.inputs %}
-                    <div class="form-item">
-                        <label for="{{ input.id }}">{{ input.label }}
-                            <span class="tooltip">{{ input.tooltip }}</span>
-                        </label>
+                    <tr class="form-item">
+                        <td>
+                            <label for="{{ input.id }}" 
+                                class="{% if input.required %} required{% endif %}"
+                            >{{ input.label }}
+                                <span class="tooltip">{{ input.tooltip }}</span>
+                            </label>
+                        </td>
                         {% if modal_default_values is defined %}
                             {% set default_value = modal_default_values[input.id] if input.id in modal_default_values else none %}
                         {% endif %}
-                        <input type="{{ input.type }}" id="{{ input.id }}" name="{{ input.id }}" {% if default_value is not none %} value="{{ default_value }}" {% endif %}
-                        {% if input.required %} required {% endif %}
-                        {% if 'placeholder' in input %} placeholder="{{ input.placeholder }}" {% endif %}
-                        {% if 'readonly' in input %} readonly="{{input.readonly}}" {% endif %}
-                        />
-                    </div>
+                        <td>
+                            <input type="{{ input.type }}" id="{{ input.id }}" name="{{ input.id }}" {% if default_value is not none %} value="{{ default_value }}" {% endif %}
+                            {% if input.required %} required {% endif %}
+                            {% if 'placeholder' in input %} placeholder="{{ input.placeholder }}" {% endif %}
+                            {% if 'readonly' in input %} readonly="{{input.readonly}}" {% endif %}
+                            />
+                        </td>
+                    </tr>
                 {% endfor %}
-                </div>
+                </table>
             {% endfor %}
             <div class="form-actions">
                 <input type="submit" value="Submit"/>
