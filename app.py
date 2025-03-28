@@ -16,6 +16,7 @@ from zoneforge.api.records import api as ns_record
 from zoneforge.api.records import DnsRecord
 from zoneforge.api.authentication import api as ns_auth
 from zoneforge.api.authentication import LoginResource, SignupResource
+from zoneforge.api.rbac import api as ns_rbac
 from zoneforge.db import db
 
 
@@ -31,6 +32,7 @@ def get_logging_conf() -> dict:
     return log_config
 
 
+# pylint: disable=too-many-statements
 def create_app():
     # Flask App setup
     app = Flask(__name__, static_folder="static", static_url_path="")
@@ -65,6 +67,8 @@ def create_app():
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
         "AUTH_DB_URI", "sqlite:///zoneinfo.db"
     )
+    # Controls whether Flask-RESTx suggests similar endpoints when a 404 Not Found error occurs
+    app.config["ERROR_404_HELP"] = False
 
     if app.config["AUTH_ENABLED"]:
         logging.info("authentication enabled, setting up database")
@@ -158,9 +162,12 @@ def create_app():
     api.add_namespace(ns_record)
     api.add_namespace(ns_types)
     api.add_namespace(ns_auth)
+    api.add_namespace(ns_rbac)
 
     return app
 
+
+# pylint: enable=too-many-statements
 
 if __name__ == "__main__":
     dev = create_app()
