@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta, timezone
-from functools import wraps
 import bcrypt
 import jwt
 from flask import current_app
@@ -7,6 +6,7 @@ from flask_restx import Namespace, Resource, reqparse
 from werkzeug.exceptions import *  # pylint: disable=wildcard-import,unused-wildcard-import,redefined-builtin
 import zoneforge.db.db_model as model
 from zoneforge.db import db
+from zoneforge.api import token_parser
 
 api = Namespace("auth", description="Authentication operations")
 
@@ -15,45 +15,9 @@ login_parser = reqparse.RequestParser(bundle_errors=True)
 login_parser.add_argument("username", type=str, help="Missing username", required=True)
 login_parser.add_argument("password", type=str, help="Missing password", required=True)
 
-token_parser = reqparse.RequestParser(bundle_errors=True)
 token_parser.add_argument(
-    "Authorization",
-    type=str,
-    help="JWT token is missing",
-    required=True,
-    location=["cookies", "headers"],
+    "refresh_token", type=str, help="JWT token is missing", location=["cookies"]
 )
-
-
-# Decorator to validate JWT token
-def validate_token(func):
-    @wraps(func)
-    def decorated(*args, **kwargs):
-        try:
-            args = token_parser.parse_args()
-            token = args.get("Authorization").split(" ")[-1]
-
-            user_token_data = jwt.decode(
-                token, current_app.config["TOKEN_SECRET"], algorithms="HS256"
-            )
-
-            current_user = db.get_or_404(model.User, user_token_data["id"])
-
-            if not current_user:
-                raise NotFound("User not found")
-
-            return func(*args, **kwargs)
-
-        except jwt.ExpiredSignatureError:
-            return {"message": "Token expired"}, 401
-
-        except jwt.InvalidTokenError:
-            return {"message": "Invalid token"}, 401
-
-        except NotFound as user_not_found:
-            return {"message": user_not_found.description}, 404
-
-    return decorated
 
 
 def _generate_token(user_id):
@@ -62,8 +26,13 @@ def _generate_token(user_id):
             model.User, user_id, description=f"User id '{user_id}' not found"
         )
 
+        group_roles = (
+            [role.name for role in user_entity.group.roles] if user_entity.group else []
+        )
+
         token_payload = {
             "username": user_entity.username,
+            "roles": group_roles,
             "exp": datetime.now(tz=timezone.utc) + timedelta(minutes=30),
         }
 
@@ -121,7 +90,11 @@ class LoginResource(Resource):
 class RefreshTokenResource(Resource):
     def post(self):
         args = token_parser.parse_args()
-        token = args.get("Authorization").split(" ")[-1]
+        token = (
+            args.get("Authorization").split(" ")[-1]
+            or args.get("refresh_token")
+            or None
+        )
 
         user_refresh_token_data = jwt.decode(
             token, current_app.config["REFRESH_TOKEN_SECRET"], algorithms="HS256"
