@@ -15,7 +15,10 @@ login_parser = reqparse.RequestParser(bundle_errors=True)
 login_parser.add_argument("username", type=str, help="Missing username", required=True)
 login_parser.add_argument("password", type=str, help="Missing password", required=True)
 
-token_parser.add_argument("refresh_token", type=str, help="JWT token is missing", location=["cookies"])
+token_parser.add_argument(
+    "refresh_token", type=str, help="JWT token is missing", location=["cookies"]
+)
+
 
 def _generate_token(user_id):
     try:
@@ -24,8 +27,7 @@ def _generate_token(user_id):
         )
 
         group_roles = (
-            [role.name for role in user_entity.group.roles]
-            if user_entity.group else []
+            [role.name for role in user_entity.group.roles] if user_entity.group else []
         )
 
         token_payload = {
@@ -89,9 +91,9 @@ class RefreshTokenResource(Resource):
     def post(self):
         args = token_parser.parse_args()
         token = (
-            args.get("Authorization").split(" ")[-1] or
-            args.get("refresh_token") or
-            None
+            args.get("Authorization").split(" ")[-1]
+            or args.get("refresh_token")
+            or None
         )
 
         user_refresh_token_data = jwt.decode(

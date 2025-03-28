@@ -1,26 +1,30 @@
 from flask_restx import Namespace, Resource, reqparse
-from werkzeug.exceptions import * # pylint: disable=wildcard-import,unused-wildcard-import,redefined-builtin
+from werkzeug.exceptions import *  # pylint: disable=wildcard-import,unused-wildcard-import,redefined-builtin
 
 from zoneforge.api import release_access
 from zoneforge.db import db
 from zoneforge.db.db_model import Group, Role, User
 
-api = Namespace('rbac', description="RBAC Manager")
+api = Namespace("rbac", description="RBAC Manager")
 
 # Parsers
 rbac_parser = reqparse.RequestParser(bundle_errors=True)
-rbac_parser.add_argument('name', type=str, help='Missing name', required=True)
+rbac_parser.add_argument("name", type=str, help="Missing name", required=True)
+
 
 @api.route("/group")
-@api.route("/group/<int:group_id>")
 class GroupResource(Resource):
-    @release_access('group_read')
+    @release_access("group_read")
     def get(self):
         group_entities = db.paginate(db.select(Group))
 
-        return {"groups": [{"id": group.id, "group_name": group.name} for group in group_entities]}, 200
+        return {
+            "groups": [
+                {"id": group.id, "group_name": group.name} for group in group_entities
+            ]
+        }, 200
 
-    @release_access('group_create')
+    @release_access("group_create")
     def post(self):
         args = rbac_parser.parse_args()
         group_name = args.get("name")
@@ -39,8 +43,11 @@ class GroupResource(Resource):
 
         return {"message": "Group created successfully"}, 201
 
-    @release_access('group_update')
-    def put(self, group_id:int = None):
+
+@api.route("/group/<int:group_id>")
+class SpecificGroupResource(Resource):
+    @release_access("group_update")
+    def put(self, group_id: int = None):
         args = rbac_parser.parse_args()
         group_name = args.get("name")
 
@@ -62,8 +69,8 @@ class GroupResource(Resource):
 
         return {"message": "Group updated successfully"}, 200
 
-    @release_access('group_delete')
-    def delete(self, group_id:int = None):
+    @release_access("group_delete")
+    def delete(self, group_id: int = None):
         group_entity = db.get_or_404(Group, group_id, description="Group id not exist")
 
         db.session.delete(group_entity)
@@ -71,16 +78,18 @@ class GroupResource(Resource):
 
         return {"message": "Group deleted"}, 200
 
+
 @api.route("/role")
-@api.route("/role/<int:role_id>")
 class RoleResource(Resource):
-    @release_access('role_read')
+    @release_access("role_read")
     def get(self):
         role_entities = db.paginate(db.select(Role))
 
-        return {"roles": [{"id": role.id, "role_name": role.name} for role in role_entities]}
+        return {
+            "roles": [{"id": role.id, "role_name": role.name} for role in role_entities]
+        }
 
-    @release_access('role_create')
+    @release_access("role_create")
     def post(self):
         args = rbac_parser.parse_args()
         role_name = args.get("name")
@@ -99,8 +108,11 @@ class RoleResource(Resource):
 
         return {"message": "Role created successfully"}, 201
 
-    @release_access('role_update')
-    def put(self, role_id:int = None):
+
+@api.route("/role/<int:role_id>")
+class SpecificRoleResource(Resource):
+    @release_access("role_update")
+    def put(self, role_id: int = None):
         args = rbac_parser.parse_args()
         role_name = args.get("name")
 
@@ -122,8 +134,8 @@ class RoleResource(Resource):
 
         return {"message": "Role updated successfully"}, 200
 
-    @release_access('role_delete')
-    def delete(self, role_id:int = None):
+    @release_access("role_delete")
+    def delete(self, role_id: int = None):
         role_entity = db.get_or_404(Role, role_id, description="Role id not exist")
 
         db.session.delete(role_entity)
@@ -131,10 +143,11 @@ class RoleResource(Resource):
 
         return {"message": "Role deleted"}, 200
 
+
 @api.route("/group/<int:group_id>/user/<int:user_id>")
 class UserAssignGroupResource(Resource):
-    @release_access('userAssignGroup_read')
-    def post(self, group_id:int = None, user_id:int = None):
+    @release_access("userAssignGroup_read")
+    def post(self, group_id: int = None, user_id: int = None):
         db.get_or_404(Group, group_id, description="Group id not exist")
         user_entity = db.get_or_404(User, user_id, description="User id not exist")
 
@@ -147,8 +160,8 @@ class UserAssignGroupResource(Resource):
 
         return {"message": "User assign to a group successfully"}, 200
 
-    @release_access('userAssignGroup_update')
-    def put(self, group_id:int = None, user_id:int = None):
+    @release_access("userAssignGroup_update")
+    def put(self, group_id: int = None, user_id: int = None):
         db.get_or_404(Group, group_id, description="Group id not exist")
         user_entity = db.get_or_404(User, user_id, description="User id not exist")
 
@@ -164,8 +177,8 @@ class UserAssignGroupResource(Resource):
 
         return {"message": "User assign to the new group"}, 200
 
-    @release_access('userAssignGroup_delete')
-    def delete(self, group_id:int = None, user_id:int = None):
+    @release_access("userAssignGroup_delete")
+    def delete(self, group_id: int = None, user_id: int = None):
         db.get_or_404(Group, group_id, description="Group id not exist")
         user_entity = db.get_or_404(User, user_id, description="User id not exist")
 
@@ -181,10 +194,11 @@ class UserAssignGroupResource(Resource):
 
         return {"message": "User association from this group deleted"}, 200
 
+
 @api.route("/group/<int:group_id>/role/<int:role_id>")
 class RoleAssignGroupResource(Resource):
-    @release_access('roleAssignGroup_read')
-    def post(self, group_id:int = None, role_id:int = None):
+    @release_access("roleAssignGroup_read")
+    def post(self, group_id: int = None, role_id: int = None):
         group_entity = db.get_or_404(Group, group_id, description="Group id not exist")
         role_entity = db.get_or_404(Role, role_id, description="Role id not exist")
 
@@ -198,8 +212,8 @@ class RoleAssignGroupResource(Resource):
 
         return {"message": "Role assign to group successfully"}, 201
 
-    @release_access('roleAssignGroup_delete')
-    def delete(self, group_id:str = None, role_id: str = None):
+    @release_access("roleAssignGroup_delete")
+    def delete(self, group_id: str = None, role_id: str = None):
         group_entity = db.get_or_404(Group, group_id, description="Group id not exist")
         role_entity = db.get_or_404(Role, role_id, description="Role id not exist")
 

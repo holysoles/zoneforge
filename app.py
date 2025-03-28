@@ -32,6 +32,7 @@ def get_logging_conf() -> dict:
     return log_config
 
 
+# pylint: disable=too-many-statements
 def create_app():
     # Flask App setup
     app = Flask(__name__, static_folder="static", static_url_path="")
@@ -164,6 +165,8 @@ def create_app():
 
     return app
 
+
+# pylint: enable=too-many-statements
 
 if __name__ == "__main__":
     dev = create_app()
