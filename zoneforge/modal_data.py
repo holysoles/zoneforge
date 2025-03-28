@@ -54,14 +54,6 @@ ZONE_CREATE_FORM = [
                 "type": "text",
                 "required": True,
             },
-            # {
-            #    "id": "zone_ttl",
-            #    "label": "TTL",
-            #    "tooltip": "The default TTL for records in the zone.",
-            #    "type": "number",
-            #    "default": 86400,
-            #    "required": True,
-            # },
         ],
     },
     {
@@ -115,6 +107,51 @@ ZONE_CREATE_FORM = [
     {"heading": "Primary Nameserver", "inputs": ZONE_CREATE_PRIMARY_NS_OPTIONS},
 ]
 
+ZONE_CREATE_XFR_FORM = [
+    {
+        "heading": None,
+        "inputs": [
+            {
+                "id": "zone_name",
+                "label": "Zone Name",
+                "tooltip": "The domain to initiate a zone transfer for. AKA origin.",
+                "placeholder": "example.com",
+                "type": "text",
+                "required": True,
+            },
+            {
+                "id": "use_udp",
+                "label": "Use UDP?",
+                "tooltip": "Whether or not the zone transfer should be attempted over UDP.",
+                "placeholder": "example.com",
+                "type": "checkbox",
+                "required": False,
+            },
+        ],
+    },
+    {
+        "heading": "Nameserver",
+        "inputs": [
+            {
+                "id": "primary_ns_ip",
+                "label": "Nameserver IP",
+                "tooltip": "The IP of the nameserver to initiate the transfer from. By default, the primary NS from the zone's SOA record is used.",
+                "placeholder": "1.1.1.1",
+                "type": "text",
+                "required": False,
+            },
+            {
+                "id": "primary_ns_port",
+                "label": "Nameserver Port",
+                "tooltip": "The nameserver's port to connect to for the zone transfer. Defaults to 53.",
+                "placeholder": "53",
+                "type": "number",
+                "required": False,
+            },
+        ],
+    },
+]
+
 ZONE_EDIT_FORM = [
     {
         "heading": None,
@@ -122,20 +159,12 @@ ZONE_EDIT_FORM = [
             {
                 "id": "name",
                 "label": "Zone Name",
-                "tooltip": "The domain to create a zone for. AKA origin.",
+                "tooltip": "The domain that the zone manages. AKA origin.",
                 "placeholder": "example.com",
                 "type": "text",
                 "required": True,
                 "readonly": True,
             },
-            # {
-            #    "id": "zone_ttl",
-            #    "label": "TTL",
-            #    "tooltip": "The default TTL for records in the zone.",
-            #    "type": "number",
-            #    "default": 86400,
-            #    "required": True,
-            # },
         ],
     },
     {
@@ -191,12 +220,22 @@ ZONE_EDIT_FORM = [
 
 ZONE_CREATION = {
     "heading": "Create New Zone",
-    "id": "add-zone-modal",
+    "id": "create-zone-modal",
     "api-method": "POST",
     "api-endpoint": "/api/zones",
-    "open-char": "+",
+    "open-char": "Create New Zone",
     "close-char": "&times;",
     "form": ZONE_CREATE_FORM,
+}
+
+ZONE_CREATION_XFR = {
+    "heading": "Import via Zone Transfer",
+    "id": "zone-from-xfr-modal",
+    "api-method": "POST",
+    "api-endpoint": "/api/zones/transfer",
+    "open-char": "New Zone From Transfer",
+    "close-char": "&times;",
+    "form": ZONE_CREATE_XFR_FORM,
 }
 
 ZONE_EDIT = {

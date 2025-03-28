@@ -2,7 +2,7 @@ import os
 import logging
 import sys
 import subprocess
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, current_app
 from flask_restx import Api
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_minify import minify
@@ -92,14 +92,18 @@ def create_app():
         return render_template(
             "home.html.j2",
             zones=zones,
-            modal=zoneforge.modal_data.ZONE_CREATION,
-            modal_api="/api/zones",
+            modals=[
+                zoneforge.modal_data.ZONE_CREATION,
+                zoneforge.modal_data.ZONE_CREATION_XFR,
+            ],
             modal_default_values=zone_create_defaults,
         )
 
     @app.route("/zone/<string:zone_name>", methods=["GET"])
     def zone(zone_name):
-        zone = get_zones(zone_name=zone_name)[0].to_response()
+        zone = get_zones(
+            zonefile_folder=current_app.config["ZONE_FILE_FOLDER"], zone_name=zone_name
+        )[0].to_response()
         zf_record = DnsRecord()
         records = zf_record.get(zone_name=zone_name)
         current_zone_data = {

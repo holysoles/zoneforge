@@ -1,4 +1,5 @@
 from flask_restx import Resource, Namespace, reqparse, fields
+from flask import current_app
 from werkzeug.exceptions import *  # pylint: disable=wildcard-import,unused-wildcard-import,redefined-builtin
 from zoneforge.core import (
     get_records,
@@ -60,9 +61,6 @@ record_delete_parser.replace_argument(
     "type", type=str, help="Type of DNS Record", required=True
 )
 record_delete_parser.add_argument(
-    "ttl", type=str, help="TTL of the DNS Record", required=True
-)
-record_delete_parser.add_argument(
     "data", type=dict, help="RData of the DNS Record", required=True
 )
 record_delete_parser.add_argument(
@@ -103,6 +101,7 @@ class DnsRecord(Resource):
 
         records = get_records(
             zone_name=zone_name,
+            zonefile_folder=current_app.config["ZONE_FILE_FOLDER"],
             record_name=record_name,
             record_type=record_type,
             include_soa=include_soa,
@@ -120,6 +119,7 @@ class DnsRecord(Resource):
         args = record_post_parser.parse_args()
         new_record = create_record(
             zone_name=zone_name,
+            zonefile_folder=current_app.config["ZONE_FILE_FOLDER"],
             record_name=args["name"],
             record_type=args["type"],
             record_ttl=args["ttl"],
@@ -147,6 +147,7 @@ class SpecificDnsRecord(Resource):
 
         records = get_records(
             zone_name=zone_name,
+            zonefile_folder=current_app.config["ZONE_FILE_FOLDER"],
             record_name=record_name,
             record_type=record_type,
             include_soa=include_soa,
@@ -165,8 +166,11 @@ class SpecificDnsRecord(Resource):
         """
         args = record_put_parser.parse_args()
         record_ttl = args.get("ttl")
+        if record_ttl is None:
+            record_ttl = current_app.config["DEFAULT_ZONE_TTL"]
         updated_record = update_record(
             zone_name=zone_name,
+            zonefile_folder=current_app.config["ZONE_FILE_FOLDER"],
             record_name=record_name,
             record_type=args["type"],
             record_ttl=record_ttl,
@@ -185,10 +189,10 @@ class SpecificDnsRecord(Resource):
         args = record_delete_parser.parse_args()
         delete_record(
             zone_name=zone_name,
+            zonefile_folder=current_app.config["ZONE_FILE_FOLDER"],
             record_name=record_name,
             record_type=args["type"],
             record_data=args["data"],
-            record_ttl=args["ttl"],
             record_index=args["index"],
         )
         return {}

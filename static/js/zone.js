@@ -126,7 +126,6 @@ async function deleteRecord(row) {
     try {
         const requestBody = Object.fromEntries([
             ['type', row.querySelector('[data-field="type"]').textContent.trim()],
-            ['ttl', row.querySelector('[data-field="ttl"]')?.textContent.trim()],
             ['data', getRecordDataFromCell(row.querySelectorAll('[data-field="data"]'))],
             ['comment', row.querySelector('[data-field="comment"]')?.textContent.trim()],
             ['index', row.getAttribute('data-record-index')]
@@ -274,6 +273,9 @@ function formatLabel(label) {
 
 async function updateDataFieldsForType(typeSelect) {
     const selectedType = typeSelect.value;
+    if (!selectedType) {
+        return
+    }
     const row = typeSelect.closest('tr');
     const dataRows = row.querySelector('.data-rows');
     const existingEntries = dataRows.querySelectorAll('.data-entry');
