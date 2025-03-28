@@ -16,6 +16,7 @@ from zoneforge.api.records import api as ns_record
 from zoneforge.api.records import DnsRecord
 from zoneforge.api.authentication import api as ns_auth
 from zoneforge.api.authentication import LoginResource, SignupResource
+from zoneforge.api.rbac import api as ns_rbac
 from zoneforge.db import db
 
 
@@ -65,6 +66,7 @@ def create_app():
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
         "AUTH_DB_URI", "sqlite:///zoneinfo.db"
     )
+    app.config["ERROR_404_HELP"] = False
 
     if app.config["AUTH_ENABLED"]:
         logging.info("authentication enabled, setting up database")
@@ -158,6 +160,7 @@ def create_app():
     api.add_namespace(ns_record)
     api.add_namespace(ns_types)
     api.add_namespace(ns_auth)
+    api.add_namespace(ns_rbac)
 
     return app
 
