@@ -53,7 +53,7 @@ class ZFZone(dns.zone.Zone):
         else:
             setattr(self._zone, name, value)
 
-    def to_response(self):
+    def to_response(self) -> dict:
         res = {}
         res["name"] = self.origin.to_text()
         res["record_count"] = self.record_count
@@ -146,6 +146,22 @@ def create_zone(
         txn.add(ns_rrset)
         if ns_a_rrset:
             txn.add(ns_a_rrset)
+    new_zfzone.write_to_file()
+    return new_zfzone
+
+
+def create_zone_from_text(
+    zone_name: dns.name.Name, zone_text: str, zonefile_folder: str
+) -> ZFZone:
+    try:
+        new_zone = dns.zone.from_text(
+            text=zone_text,
+            origin=zone_name,
+            relativize=True,
+        )
+    except dns.exception.SyntaxError as e:
+        raise BadRequest("Invalid zone file content was provided") from e
+    new_zfzone = ZFZone(zone=new_zone, zonefile_folder=zonefile_folder)
     new_zfzone.write_to_file()
     return new_zfzone
 

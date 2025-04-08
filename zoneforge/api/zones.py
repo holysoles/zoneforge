@@ -5,6 +5,7 @@ from werkzeug.exceptions import *  # pylint: disable=wildcard-import,unused-wild
 from zoneforge.core import (
     get_zones,
     create_zone,
+    create_zone_from_text,
     delete_zone,
     create_record,
     update_record,
@@ -122,6 +123,25 @@ zone_model = api.model(
                     "mname": "ns1",
                 },
             },
+        ),
+    },
+)
+
+zone_import_parser = reqparse.RequestParser()
+zone_import_parser.add_argument(
+    "content", type=str, help="Content of the DNS Zone file", required=True
+)
+
+zone_export_model = api.model(
+    "DnsZoneExport",
+    {
+        "name": fields.String(example="example.com."),
+        "content": fields.String(
+            example="""
+        $ORIGIN example.com.
+        @ 36000 IN SOA ns1 hostmaster 20250116 28800 1800 2592000 86400 ; minimum (1 day)
+        @ 86400 IN NS ns1
+        """
         ),
     },
 )
@@ -325,6 +345,39 @@ class SpecificDnsZone(Resource):
         ):
             return {}
         raise NotFound("A zone with that name does not exist.")
+
+
+@api.route("/<string:zone_name>/import")
+class DnsZoneImport(Resource):
+    @api.marshal_with(zone_model)
+    def post(self, zone_name: str):
+        args = zone_import_parser.parse_args()
+        dns_name = dns.name.from_text(zone_name)
+        new_zone = create_zone_from_text(
+            zone_name=dns_name,
+            zone_text=args["content"],
+            zonefile_folder=current_app.config["ZONE_FILE_FOLDER"],
+        )
+        return new_zone.to_response()
+
+
+@api.route("/<string:zone_name>/export")
+class DnsZoneExport(Resource):
+    @api.marshal_with(zone_export_model)
+    def get(self, zone_name: str):
+        dns_name = dns.name.from_text(zone_name)
+        export_zone = get_zones(
+            zonefile_folder=current_app.config["ZONE_FILE_FOLDER"],
+            zone_name=dns_name,
+        )[0]
+        if not export_zone:
+            raise NotFound("A zone with that name does not exist.")
+
+        export_data = {
+            "zone_name": zone_name,
+            "content": export_zone.to_text(),
+        }
+        return export_data
 
 
 @api.route("/transfer")
