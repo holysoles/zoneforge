@@ -61,9 +61,6 @@ record_delete_parser.replace_argument(
     "type", type=str, help="Type of DNS Record", required=True
 )
 record_delete_parser.add_argument(
-    "ttl", type=str, help="TTL of the DNS Record", required=True
-)
-record_delete_parser.add_argument(
     "data", type=dict, help="RData of the DNS Record", required=True
 )
 record_delete_parser.add_argument(
@@ -196,7 +193,6 @@ class SpecificDnsRecord(Resource):
             record_name=record_name,
             record_type=args["type"],
             record_data=args["data"],
-            record_ttl=args["ttl"],
             record_index=args["index"],
         )
         return {}

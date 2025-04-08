@@ -421,7 +421,6 @@ def test_zf_delete_a_record(app_with_single_zone, zfzone_common_data):
     zone_name = str(zfzone_common_data.origin)
     record_name = "ns1"
     record_type = "A"
-    record_ttl = "86400"
     record_data = {"address": "192.168.1.10"}
     record_index = 0
 
@@ -441,7 +440,6 @@ def test_zf_delete_a_record(app_with_single_zone, zfzone_common_data):
             record_name=record_name,
             record_type=record_type,
             record_data=record_data,
-            record_ttl=record_ttl,
             record_index=record_index,
             zone_name=zone_name,
             zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
@@ -464,7 +462,6 @@ def test_zf_delete_txt_record(app_with_single_zone, zfzone_common_data):
     zone_name = str(zfzone_common_data.origin)
     record_name = "@"
     record_type = "TXT"
-    record_ttl = "86400"
     record_data = {"strings": "This domain name is reserved for use in documentation"}
     record_index = 0
 
@@ -487,7 +484,6 @@ def test_zf_delete_txt_record(app_with_single_zone, zfzone_common_data):
             record_name=record_name,
             record_type=record_type,
             record_data=record_data,
-            record_ttl=record_ttl,
             record_index=record_index,
             zone_name=zone_name,
             zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
@@ -510,7 +506,6 @@ def test_zf_delete_single_record_under_rrset(app_with_single_zone, zfzone_common
     zone_name = str(zfzone_common_data.origin)
     record_name = "@"
     record_type = "MX"
-    record_ttl = "86400"
     record_data = {"preference": 10, "exchange": "mail"}
     record_index = 0
 
@@ -533,7 +528,6 @@ def test_zf_delete_single_record_under_rrset(app_with_single_zone, zfzone_common
             record_name=record_name,
             record_type=record_type,
             record_data=record_data,
-            record_ttl=record_ttl,
             record_index=record_index,
             zone_name=zone_name,
             zonefile_folder=app_with_single_zone.config["ZONE_FILE_FOLDER"],
