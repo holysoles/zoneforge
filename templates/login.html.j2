@@ -1,4 +1,47 @@
 {% extends 'layout.html.j2' %}
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/authentication.css') }}" />
+{% endblock %}
 
 {% block content %}
+    <div class="auth-content">
+        <div class="auth-title">
+            <h1>Login</h1>
+        </div>
+
+        <div class="flash-message">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <span class="{{ category }}">{{ message }}</span>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <form method="post">
+            <div class="credentials">
+                <label class="placeholder-credentials">
+                    <input type="text" name="username" placeholder=" " required>
+                    <span>Username</span>
+                </label>
+                
+                <label class="placeholder-credentials">
+                    <input type="password" name="password" minlength=6 placeholder=" " required>
+                    <span>Password</span>
+                </label>
+            </div>
+
+            <button type="submit" name="submit">Continue</button>
+        </form>
+
+        <div class="auth-base_box">
+            <label>
+                <span>Don't have an account? </span>
+                <a href="/signup">Sign up</a>
+            </label>
+        </div>
+    </div>
+
 {% endblock %}

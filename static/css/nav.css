@@ -1,0 +1,91 @@
+nav {
+    display: flex;
+    color: #333333;
+}
+
+.nav-menu {
+    height: 24px;
+    padding: .5rem;
+    position: absolute;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.nav-menu svg {
+    position: inherit;
+    transition: opacity .08s ease-in;
+}
+
+.nav-menu:hover svg {
+    transform: scale(1.1);
+}
+
+.deactivate {
+    opacity: 0;
+}
+
+.nav-content {
+    display: flex;
+    align-items: center;
+    height: 40px;
+    width: 100%;
+    box-shadow: inset 0px -4px 12px -10px #333333;
+    position: relative;
+    transform: translateX(-107%);
+    transition: transform 0.3s cubic-bezier(0.85, 0, 0.58, 1);
+}
+
+.nav-content-open {
+    transform: translateX(0);
+}
+
+.shadow-menu {
+    height: 24px;
+    width: 40px;
+    margin-right: .5rem;
+    border-right: 1px solid #aaaaaa;
+}
+
+.nav-links {
+    display: flex;
+    flex: 1;
+}
+
+.nav-logout {
+    display: flex;
+    justify-content: flex-end;
+    height: 25px;
+    width: 95px;
+    padding: .5rem;
+}
+
+.nav-logout form {
+    overflow: hidden;
+}
+
+.nav-logout button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: .5rem;
+    border: none;
+    border-left: 1px solid #aaaaaa;
+    background-color: #ffffff00;
+    color: #333333;
+    cursor: pointer;
+    transform: translateX(64%);
+    transition: transform 0.3s ease;
+}
+
+.nav-logout button > span {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.nav-logout button:hover {
+    transform: translateX(0);
+}
+
+.nav-logout button:hover > span {
+  opacity: 1;
+}
