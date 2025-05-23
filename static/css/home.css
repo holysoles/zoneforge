@@ -33,7 +33,7 @@ header p {
 /* Layout */
 .content {
     max-width: 1200px;
-    margin: 2rem auto;
+    margin: 0 auto 2rem auto;
     padding: 1rem;
 }
 
