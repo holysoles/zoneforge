@@ -49,6 +49,20 @@ nav {
 .nav-links {
     display: flex;
     flex: 1;
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+    color: #333333a6;
+}
+
+.nav-links a {
+    text-decoration: none;
+    padding: .5rem;
+    color: inherit;
+}
+
+.nav-links li:hover {
+    transform: scale(1.03);
 }
 
 .nav-logout {

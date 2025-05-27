@@ -6,7 +6,14 @@
     </div>
     <div class="nav-content">
         <div class="shadow-menu"></div>
-        <div class="nav-links"></div>
+        <ul class="nav-links">
+            {# Specific role to access manage_access page #}
+            {% if 'adm' in current_user.roles %}
+                <li {% if request.path.startswith('/access') %}style="color: #4CAF50;"{% endif %}>
+                    <a href="{{ url_for('access', access_name='users') }}">Administration</a>
+                </li>
+            {% endif %}
+        </ul>
         <div class="nav-logout">
             <form action="/logout" method="post">
                 <button type="submit">
