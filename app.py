@@ -12,6 +12,7 @@ from flask import (
     current_app,
     make_response,
     g,
+    abort,
 )
 from flask_restx import Api
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -27,8 +28,11 @@ from zoneforge.api.records import DnsRecord
 from zoneforge.api.authentication import api as ns_auth
 from zoneforge.api.authentication import LoginResource, SignupResource
 from zoneforge.api.rbac import api as ns_rbac
+from zoneforge.api.idm import api as ns_idm
 from zoneforge.db import db
 from zoneforge.api import app_release_access
+from zoneforge.api.rbac import RoleResource, GroupResource
+from zoneforge.api.idm import UserResource
 
 
 def get_logging_conf() -> dict:
@@ -99,7 +103,7 @@ def create_app():
     api = Api(app, prefix="/api", doc="/api", validate=True)
 
     @app.route("/", methods=["GET"])
-    @app_release_access()
+    # @app_release_access() # Without decorator the nav don't appear
     def home():
         zf_zone = DnsZone()
         try:
@@ -122,7 +126,6 @@ def create_app():
         )
 
     @app.route("/zone/<string:zone_name>", methods=["GET"])
-    @app_release_access()
     def zone(zone_name):
         zone = get_zones(
             zonefile_folder=current_app.config["ZONE_FILE_FOLDER"], zone_name=zone_name
@@ -197,12 +200,47 @@ def create_app():
         response.delete_cookie("refresh_token")
         return response
 
+    @app.route("/access/<string:access_name>", methods=["GET"])
+    @app_release_access("adm")
+    def access(access_name):
+        user_sort = request.args.get("sort", "")
+        user_sort_order = request.args.get("sort_order", "desc")
+
+        if access_name not in ("users", "groups", "roles"):
+            return abort(404)
+
+        users = groups = roles = [{}]
+
+        if access_name == "users":
+            users = UserResource().get()
+
+        if access_name in ("users", "groups"):
+            groups = GroupResource().get()
+
+        if access_name in ("groups", "roles"):
+            roles = RoleResource().get()
+
+        access = {
+            **users[0],
+            **groups[0],
+            **roles[0],
+        }
+
+        return render_template(
+            "access.html.j2",
+            access_name=access_name,
+            access=access,
+            record_sort=user_sort,
+            record_sort_order=user_sort_order,
+        )
+
     api.add_namespace(ns_status)
     api.add_namespace(ns_zone)
     api.add_namespace(ns_record)
     api.add_namespace(ns_types)
     api.add_namespace(ns_auth)
     api.add_namespace(ns_rbac)
+    api.add_namespace(ns_idm)
 
     return app
 
