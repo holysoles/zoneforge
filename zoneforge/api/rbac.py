@@ -20,7 +20,14 @@ class GroupResource(Resource):
 
         return {
             "groups": [
-                {"id": group.id, "group_name": group.name} for group in group_entities
+                {
+                    "id": group.id,
+                    "group_name": group.name,
+                    "roles": [
+                        {"id": role.id, "role_name": role.name} for role in group.roles
+                    ],
+                }
+                for group in group_entities
             ]
         }, 200
 
@@ -41,7 +48,11 @@ class GroupResource(Resource):
         db.session.add(group)
         db.session.commit()
 
-        return {"message": "Group created successfully"}, 201
+        return {
+            "id": group.id,
+            "group_name": group.name,
+            "message": "Group created successfully",
+        }, 201
 
 
 @api.route("/group/<int:group_id>")
@@ -87,7 +98,7 @@ class RoleResource(Resource):
 
         return {
             "roles": [{"id": role.id, "role_name": role.name} for role in role_entities]
-        }
+        }, 200
 
     @api_release_access("role_create")
     def post(self):
@@ -106,7 +117,11 @@ class RoleResource(Resource):
         db.session.add(role)
         db.session.commit()
 
-        return {"message": "Role created successfully"}, 201
+        return {
+            "id": role.id,
+            "role_name": role.name,
+            "message": "Role created successfully",
+        }, 201
 
 
 @api.route("/role/<int:role_id>")
@@ -144,10 +159,10 @@ class SpecificRoleResource(Resource):
         return {"message": "Role deleted"}, 200
 
 
-@api.route("/group/<int:group_id>/user/<int:user_id>")
+@api.route("/user/<int:user_id>/group/<int:group_id>")
 class UserAssignGroupResource(Resource):
-    @api_release_access("userAssignGroup_read")
-    def post(self, group_id: int = None, user_id: int = None):
+    @api_release_access("userAssignGroup_create")
+    def post(self, user_id: int = None, group_id: int = None):
         db.get_or_404(Group, group_id, description="Group id not exist")
         user_entity = db.get_or_404(User, user_id, description="User id not exist")
 
@@ -161,7 +176,7 @@ class UserAssignGroupResource(Resource):
         return {"message": "User assign to a group successfully"}, 200
 
     @api_release_access("userAssignGroup_update")
-    def put(self, group_id: int = None, user_id: int = None):
+    def put(self, user_id: int = None, group_id: int = None):
         db.get_or_404(Group, group_id, description="Group id not exist")
         user_entity = db.get_or_404(User, user_id, description="User id not exist")
 
@@ -178,7 +193,7 @@ class UserAssignGroupResource(Resource):
         return {"message": "User assign to the new group"}, 200
 
     @api_release_access("userAssignGroup_delete")
-    def delete(self, group_id: int = None, user_id: int = None):
+    def delete(self, user_id: int = None, group_id: int = None):
         db.get_or_404(Group, group_id, description="Group id not exist")
         user_entity = db.get_or_404(User, user_id, description="User id not exist")
 
@@ -197,7 +212,7 @@ class UserAssignGroupResource(Resource):
 
 @api.route("/group/<int:group_id>/role/<int:role_id>")
 class RoleAssignGroupResource(Resource):
-    @api_release_access("roleAssignGroup_read")
+    @api_release_access("roleAssignGroup_create")
     def post(self, group_id: int = None, role_id: int = None):
         group_entity = db.get_or_404(Group, group_id, description="Group id not exist")
         role_entity = db.get_or_404(Role, role_id, description="Role id not exist")
