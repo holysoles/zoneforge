@@ -2,7 +2,17 @@ import os
 import logging
 import sys
 import subprocess
-from flask import Flask, render_template, request, redirect, url_for, flash, current_app
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    flash,
+    current_app,
+    make_response,
+    g,
+)
 from flask_restx import Api
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_minify import minify
@@ -18,6 +28,7 @@ from zoneforge.api.authentication import api as ns_auth
 from zoneforge.api.authentication import LoginResource, SignupResource
 from zoneforge.api.rbac import api as ns_rbac
 from zoneforge.db import db
+from zoneforge.api import app_release_access
 
 
 def get_logging_conf() -> dict:
@@ -78,10 +89,17 @@ def create_app():
 
     minify(app=app, html=True, js=True, cssless=True, static=True)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+    # Validate current user in template
+    app.context_processor(
+        lambda _=None: {"current_user": getattr(g, "current_user", None)}
+    )
+
     # API Setup
     api = Api(app, prefix="/api", doc="/api", validate=True)
 
     @app.route("/", methods=["GET"])
+    @app_release_access()
     def home():
         zf_zone = DnsZone()
         try:
@@ -104,6 +122,7 @@ def create_app():
         )
 
     @app.route("/zone/<string:zone_name>", methods=["GET"])
+    @app_release_access()
     def zone(zone_name):
         zone = get_zones(
             zonefile_folder=current_app.config["ZONE_FILE_FOLDER"], zone_name=zone_name
@@ -140,11 +159,22 @@ def create_app():
             login_response = LoginResource().post()
 
             if login_response[1] != 200:
-                flash(login_response[0])
+                flash(login_response[0]["message"], "error")
 
                 return render_template("login.html.j2")
 
-            return redirect(url_for("home"))
+            response = make_response(redirect(url_for("home")))
+            response.set_cookie(
+                "access_token",
+                login_response[0]["token"],
+                httponly=True,
+            )
+            response.set_cookie(
+                "refresh_token",
+                login_response[0]["refresh_token"],
+                httponly=True,
+            )
+            return response
         return render_template("login.html.j2")
 
     @app.route("/signup", methods=["GET", "POST"])
@@ -152,14 +182,20 @@ def create_app():
         if request.method == "POST":
             signup_response = SignupResource().post()
 
-            flash(signup_response[0])
-
             if signup_response[1] != 200:
-
+                flash(signup_response[0]["message"], "error")
                 return render_template("signup.html.j2")
 
+            flash(signup_response[0]["message"], "success")
             return redirect(url_for("login"))
         return render_template("signup.html.j2")
+
+    @app.route("/logout", methods=["POST"])
+    def logout():
+        response = make_response(redirect(url_for("login")))
+        response.delete_cookie("access_token")
+        response.delete_cookie("refresh_token")
+        return response
 
     api.add_namespace(ns_status)
     api.add_namespace(ns_zone)

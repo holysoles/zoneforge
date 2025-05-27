@@ -139,5 +139,8 @@ class SignupResource(Resource):
 
             return {"message": "User created successfully"}, 200
 
+        except BadRequest as credential_error:
+            return {"message": credential_error.description}, 400
+
         except Conflict as user_exist:
             return {"message": user_exist.description}, 409
