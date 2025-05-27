@@ -1,0 +1,177 @@
+{% extends 'layout.html.j2' %}
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/zone.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/access.css') }}" />
+{% endblock %}
+{% set up_icon = "&#x25b4;"%}
+{% set down_icon = "&#x25be;"%}
+{% set singular_name = access_name[:-1] %}
+{% set name_field = singular_name + '_name' %}
+
+
+{% block content %}
+    {% macro sort(column_name='None', sort='None') -%}
+        <th>
+            <a href="{{  url_for('access', access_name=access_name, sort=sort ) }}">{{ column_name }}</a>
+            {% if record_sort == sort %}
+            <span class="sort-order">
+                {% if record_sort_order == "asc" %}
+                <a href="{{ url_for('access', access_name=access_name, sort=sort, sort_order='desc' ) }}"> {{ up_icon }} </a>
+                {% elif record_sort_order == "desc"%}
+                <a href="{{ url_for('access', access_name=access_name, sort=sort, sort_order='asc' ) }}"> {{ down_icon }} </a>
+                {% endif %}
+            </span>
+            {% endif %}
+        </th>
+    {%- endmacro  %}
+
+    <div class="manager">
+        <div class="header-row">
+            <div class="header-items">
+                <h3>{{ access_name.capitalize() }} Management</h3>
+                <div class="create-new-access">
+                    <button class="edit-zone" onclick="document.querySelector('.new-access-content').classList.toggle('new-access-active')">New {{ singular_name }}</button>
+                </div>
+            </div>
+            <div class="header-items">
+                <ul class="header-nav">
+                    <li class="{% if access_name == 'users' %}access-selected{% endif %}">
+                        <a href="{{ url_for('access', access_name='users') }}">Users</a>
+                    </li>
+                    <li class="{% if access_name == 'groups' %}access-selected{% endif %}">
+                        <a href="{{ url_for('access', access_name='groups') }}">Groups</a>
+                    </li>
+                    <li class="{% if access_name == 'roles' %}access-selected{% endif %}">
+                        <a href="{{ url_for('access', access_name='roles') }}">Roles</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        {% if access_name == 'users' %}
+            {% set new_record_url = url_for("idm_user_resource") %}
+        {% else %}
+            {% set new_record_url = url_for("rbac_{}_resource".format(singular_name)) %}
+        {% endif %}
+        
+        <div class="new-access-content">
+            <form data-url="{{ new_record_url }}" data-category="{{ access_name }}" class="new-access">
+                <div class="input-fields new-record">
+                    <div>
+                        <label for="name">Name</label>
+                        <input type="text" id="name" data-field="name" placeholder="{{ singular_name.capitalize() }} Name">
+                    </div>
+
+                    {% if access_name == 'users' %}
+                        <div>
+                            <label for="generate-password">Password</label>
+                            <input type="password" id="generate-password" placeholder="Auto generate password" disabled style="cursor: not-allowed;" data-field="password">
+                            <div id="password-content">
+                                <input type="checkbox" id="allow-generate-password">
+                                <label for="allow-generate-password">Generate your password</label>
+                            </div>
+                        </div>
+
+                        <div class="select-content">
+                            <label for="collection-options">Groups</label>
+                            <div id="collection-options" class="relative-select">
+                                <select id="access-options">
+                                    <option selected disabled value="">Select Groups</option>
+                                    {% for record in access["groups"] %}
+                                    {% set assign_url_path = url_for("rbac_user_assign_group_resource", **{"user_id": "0", "group_id": "0"}) %}
+                                        <option data-option-url="{{ assign_url_path }}" value="{{ record.id }}">{{ record["group_name"] }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    {% elif access_name == "groups" %}
+                        <div class="select-content">
+                            <label for="access-options">Roles</label>
+                            <div id="display-selected-roles" class="overflow-multi-role">
+                                Select roles
+                            </div>
+
+                            <div class="relative-select">
+                                <select id="access-options" class="access-options-inactive" multiple>
+                                    <option selected disabled value="">Select roles</option>
+                                    {% for record in access["roles"] | sort(attribute="role_name") %}
+                                    {% set assign_url_path = url_for("rbac_role_assign_group_resource", **{"group_id": "0", "role_id": "0"}) %}
+                                        <option data-option-url="{{ assign_url_path }}" value="{{ record.id }}">{{ record["role_name"] }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="drop-select" onclick="document.querySelector('#access-options').classList.toggle('access-options-active')">
+                                {{ down_icon }}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="actions">
+                    <button type="submit" class="create">Create</button>
+                </div>
+            </form>
+        </div>
+        
+        <table class="zones">
+            <thead>
+                <tr class="zone-row">
+                    <th>
+                        <a>Select</a>
+                    </th>
+                    {{ sort('Name', name_field) }}
+
+                    {% if access_name == 'users' %}
+                        {{ sort('Group', 'group') }}
+                    {% endif %}
+                    
+                    {% if access_name == 'groups' %}
+                        {{ sort('Role', 'role_name') }}
+                    {% endif %}
+                    <th>
+                        <a>Manage</a>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in access[access_name]|reverse()|sort(attribute=record_sort, reverse=(record_sort_order=='asc')) %}
+                    <tr class="zone-row" data-category="{{ access_name }}" data-index="{{ record.id }}">
+                        <td><input type="checkbox"></td>
+                
+                    {% if access_name == 'users' %}
+                        {% set group_assign_url_path = url_for("rbac_user_assign_group_resource", **{"user_id": record.id|string, "group_id": "0"}) %}
+                        {% set idm_url_path = url_for("idm_specific_user_resource", **{"user_id": record.id|string}) %}
+
+                        <td class="editable" data-field="name" data-name-url="{{ idm_url_path }}">{{ record[name_field] }}</td>
+                        <td class="editable" data-field="group" data-select-url="{{ group_assign_url_path }}">{{ record.group }}</td>
+                    {% elif access_name == 'groups' %}
+                        {% set role_assign_url_path = url_for("rbac_role_assign_group_resource", **{"group_id": record.id|string, "role_id": "0"}) %}
+                        {% set group_url_path = url_for("rbac_specific_group_resource", **{"group_id": record.id|string}) %}
+
+                        <td class="editable" data-field="name" data-name-url="{{ group_url_path }}">{{ record[name_field] }}</td>
+                        <td class="editable overflow-multi-role" data-field="role" data-select-url="{{ role_assign_url_path }}">
+                        {% for role in record.roles|reverse()|sort(attribute=record_sort, reverse=(record_sort_order=='asc')) %}
+                            <span class="multi-role">{{ role.role_name }}</span>
+                        {% endfor %}
+                        </td>
+                    {% else %}
+                        {% set role_url_path = url_for("rbac_specific_role_resource", **{"role_id": record.id|string}) %}
+
+                        <td class="editable" data-field="name" data-name-url="{{ role_url_path }}">{{ record[name_field] }}</td>
+                    {% endif %}                    
+                        <td class="actions-cell">
+                            <div class="actions">
+                                <button class="edit">Edit</button>
+                                <button class="save" style="display: none;">Save</button>
+                                <button class="cancel" style="display: none;">Cancel</button>
+                                <button class="delete">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <script src="{{ url_for('static', filename='js/access.js') }}"></script>
+{% endblock %}
