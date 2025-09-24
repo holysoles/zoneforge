@@ -1,3 +1,3 @@
 -r common.txt
 -r ci.txt
-black==25.1.0
+black==25.9.0
