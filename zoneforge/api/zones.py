@@ -1,17 +1,18 @@
 import dns.name
-from flask_restx import Namespace, Resource, reqparse, fields
 from flask import current_app
+from flask_restx import Namespace, Resource, fields, reqparse
 from werkzeug.exceptions import *  # pylint: disable=wildcard-import,unused-wildcard-import,redefined-builtin
+
+from zoneforge.api.records import dns_record_model
 from zoneforge.core import (
-    get_zones,
+    create_record,
     create_zone,
     delete_zone,
-    create_record,
-    update_record,
     friendly_email_to_zone_format,
+    get_zones,
+    update_record,
 )
 from zoneforge.core.transfer import zone_from_zone_transfer
-from zoneforge.api.records import dns_record_model
 
 api = Namespace("zones", description="DNS zone related operations")
 
@@ -342,9 +343,9 @@ class DnsZoneInboundTransfer(Resource):
         primary_ns_ip = args.get("primary_ns_ip")
         if primary_ns_ip:
             kw_args["nameserver_ip"] = primary_ns_ip
-        primary_ns_port = int(args.get("primary_ns_port"))
-        if primary_ns_port:
-            kw_args["nameserver_port"] = primary_ns_port
+        primary_ns_port_str = args.get("primary_ns_port")
+        if primary_ns_port_str:
+            kw_args["nameserver_port"] = int(primary_ns_port_str)
         use_udp = args.get("use_udp")
         if use_udp:
             kw_args["use_udp"] = use_udp
