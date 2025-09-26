@@ -1,22 +1,25 @@
-import os
 import logging
-import sys
+import os
 import subprocess
-from flask import Flask, render_template, request, redirect, url_for, flash, current_app
+import sys
+
+from flask import Flask, current_app, flash, redirect, render_template, request, url_for
+from flask_minify import minify
 from flask_restx import Api
 from werkzeug.middleware.proxy_fix import ProxyFix
-from flask_minify import minify
+
 import zoneforge.modal_data
-from zoneforge.api.status import api as ns_status
-from zoneforge.api.types import api as ns_types
-from zoneforge.api.types import RecordTypeResource
-from zoneforge.api.zones import api as ns_zone
-from zoneforge.api.zones import DnsZone, get_zones
-from zoneforge.api.records import api as ns_record
-from zoneforge.api.records import DnsRecord
-from zoneforge.api.authentication import api as ns_auth
 from zoneforge.api.authentication import LoginResource, SignupResource
+from zoneforge.api.authentication import api as ns_auth
 from zoneforge.api.rbac import api as ns_rbac
+from zoneforge.api.records import DnsRecord
+from zoneforge.api.records import api as ns_record
+from zoneforge.api.status import api as ns_status
+from zoneforge.api.types import RecordTypeResource
+from zoneforge.api.types import api as ns_types
+from zoneforge.api.zones import DnsZone
+from zoneforge.api.zones import api as ns_zone
+from zoneforge.api.zones import get_zones
 from zoneforge.db import db
 
 
@@ -36,6 +39,11 @@ def get_logging_conf() -> dict:
 def create_app():
     # Flask App setup
     app = Flask(__name__, static_folder="static", static_url_path="")
+
+    # by default, only specific file extensions (html, xml, etc) are escaped. We'll escape them all since we're using "j2"
+    app.jinja_options = {
+        "autoescape": True,
+    }
 
     # Configuration with environment variables and defaults
     log_config = get_logging_conf()
