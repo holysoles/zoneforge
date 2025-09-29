@@ -1,7 +1,7 @@
 <div id="{{ modal.id }}" class="modal">
     <div class="modal-content">
         <span class="close">
-            <button onclick="document.querySelector('#{{ modal.id }} form').reset() ;document.querySelector('#{{ modal.id }}').classList.toggle('modal-active')">{{ modal['close-char'] }}</button>
+            <button onclick="document.querySelector('#{{ modal.id }} form').reset() ;document.querySelector('#{{ modal.id }}').classList.toggle('modal-active')">{{ modal['close-char'] | safe }}</button>
         </span>
         <form id="{{ modal.id }}-form" data-api-method="{{ modal['api-method'] }}" data-api-endpoint="{{ modal['api-endpoint'] }}">
             <h2>{{ modal.heading }}</h2>

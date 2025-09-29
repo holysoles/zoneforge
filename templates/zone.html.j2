@@ -4,8 +4,8 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/zone.css') }}" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}" />
 {% endblock %}
-{% set sort_up_icon = "&#x25b4;"%}
-{% set sort_down_icon = "&#x25be;"%}
+{% set sort_up_icon = "&#x25b4;" %}
+{% set sort_down_icon = "&#x25be;" %}
 {% block content %}
     <div class="manager">
         <div class="header-row">
@@ -41,9 +41,9 @@
                         {% if record_sort == 'name' %}
                         <span class="sort-order">
                             {% if record_sort_order == "asc" %}
-                            <a href="{{ url_for('zone', zone_name=zone.name, sort='name', sort_order='desc' ) }}"> {{ sort_up_icon }} </a>
+                            <a href="{{ url_for('zone', zone_name=zone.name, sort='name', sort_order='desc' ) }}"> {{ sort_up_icon | safe }} </a>
                             {% elif record_sort_order == "desc"%}
-                            <a href="{{ url_for('zone', zone_name=zone.name, sort='name', sort_order='asc' ) }}"> {{ sort_down_icon }} </a>
+                            <a href="{{ url_for('zone', zone_name=zone.name, sort='name', sort_order='asc' ) }}"> {{ sort_down_icon | safe }} </a>
                             {% endif %}
                         </span>
                         {% endif %}
@@ -53,9 +53,9 @@
                         {% if record_sort == 'type' %}
                         <span class="sort-order">
                             {% if record_sort_order == "asc" %}
-                            <a href="{{ url_for('zone', zone_name=zone.name, sort='type', sort_order='desc' ) }}"> {{ sort_up_icon }} </a>
+                            <a href="{{ url_for('zone', zone_name=zone.name, sort='type', sort_order='desc' ) }}"> {{ sort_up_icon | safe }} </a>
                             {% elif record_sort_order == "desc"%}
-                            <a href="{{ url_for('zone', zone_name=zone.name, sort='type', sort_order='asc' ) }}"> {{ sort_down_icon }} </a>
+                            <a href="{{ url_for('zone', zone_name=zone.name, sort='type', sort_order='asc' ) }}"> {{ sort_down_icon | safe }} </a>
                             {% endif %}
                         </span>
                         {% endif %}
@@ -65,9 +65,9 @@
                         {% if record_sort == 'ttl' %}
                         <span class="sort-order">
                             {% if record_sort_order == "asc" %}
-                            <a href="{{ url_for('zone', zone_name=zone.name, sort='ttl', sort_order='desc' ) }}"> {{ sort_up_icon }} </a>
+                            <a href="{{ url_for('zone', zone_name=zone.name, sort='ttl', sort_order='desc' ) }}"> {{ sort_up_icon | safe }} </a>
                             {% elif record_sort_order == "desc"%}
-                            <a href="{{ url_for('zone', zone_name=zone.name, sort='ttl', sort_order='asc' ) }}"> {{ sort_down_icon }} </a>
+                            <a href="{{ url_for('zone', zone_name=zone.name, sort='ttl', sort_order='asc' ) }}"> {{ sort_down_icon | safe }} </a>
                             {% endif %}
                         </span>
                         {% endif %}
@@ -80,9 +80,9 @@
                         {% if record_sort == 'comment' %}
                         <span class="sort-order">
                             {% if record_sort_order == "asc" %}
-                            <a href="{{ url_for('zone', zone_name=zone.name, sort='comment', sort_order='desc' ) }}"> {{ sort_up_icon }} </a>
+                            <a href="{{ url_for('zone', zone_name=zone.name, sort='comment', sort_order='desc' ) }}"> {{ sort_up_icon | safe }} </a>
                             {% elif record_sort_order == "desc"%}
-                            <a href="{{ url_for('zone', zone_name=zone.name, sort='comment', sort_order='asc' ) }}"> {{ sort_down_icon }} </a>
+                            <a href="{{ url_for('zone', zone_name=zone.name, sort='comment', sort_order='asc' ) }}"> {{ sort_down_icon | safe }} </a>
                             {% endif %}
                         </span>
                         {% endif %}
