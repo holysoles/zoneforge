@@ -117,12 +117,14 @@ class DnsRecord(Resource):
         Creates a new DNS record in the specified zone.
         """
         args = record_post_parser.parse_args()
+        ttl = args.get("ttl", None)
+
         new_record = create_record(
             zone_name=zone_name,
             zonefile_folder=current_app.config["ZONE_FILE_FOLDER"],
             record_name=args["name"],
             record_type=args["type"],
-            record_ttl=args["ttl"],
+            record_ttl=ttl,
             record_data=args["data"],
             record_comment=args["comment"],
         )
