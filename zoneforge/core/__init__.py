@@ -1,22 +1,23 @@
 import glob
-import re
 import importlib
 import logging
+import re
 from datetime import datetime
 from os import remove
-from os.path import join, exists, basename
+from os.path import basename, exists, join
 from typing import Type
+
 import dns.immutable
-import dns.node
 import dns.name
-import dns.rdatatype
-import dns.rdtypes.txtbase
-import dns.zone
+import dns.node
 import dns.rdata
 import dns.rdataset
+import dns.rdatatype
+import dns.rdtypes.txtbase
 import dns.rrset
-import dns.versioned
 import dns.transaction
+import dns.versioned
+import dns.zone
 from werkzeug.exceptions import *  # pylint: disable=wildcard-import,unused-wildcard-import,redefined-builtin
 
 RECORD_FIELDS_TO_RELATIVIZE = [
@@ -90,6 +91,10 @@ class ZFZone(dns.zone.Zone):
             if include_soa or record[1].rdtype != dns.rdatatype.SOA
         ]
         return list(all_records)
+
+    def get_default_ttl(self):
+        # zone.get_soa() SOA class doesnt expose TTL
+        return super().get_rrset(name="@", rdtype="SOA").ttl
 
 
 def get_zones(zonefile_folder: str, zone_name: dns.name.Name = None) -> list[ZFZone]:
@@ -211,8 +216,8 @@ def create_record(
     record_name: str,
     record_type: str,
     record_data: dict,
-    record_ttl: int,
     zonefile_folder: str,
+    record_ttl: int = None,
     zone_name: dns.name.Name = None,
     record_class: dns.rdataclass.RdataClass = "IN",
     record_comment: str = None,
@@ -221,6 +226,7 @@ def create_record(
 
     # perform validation only when we're writing to disk. creating a new zone requires we have the record objects first.
     matching_rrset = None
+    zone = None
     if write:
         if not zone_name:
             raise ValueError("A zone_name must be provided to write to a zone file.")
@@ -229,6 +235,11 @@ def create_record(
             raise NotFound("the specified zone does not exist.")
         zone = zone[0]
         matching_rrset = zone.get_rrset(name=record_name, rdtype=record_type)
+
+    if record_ttl is None:
+        if zone is None:
+            raise ValueError("A zone_name must be provided to inherit TTL")
+        record_ttl = zone.get_default_ttl()
 
     new_rdata = request_to_rdata(
         zone_name=zone_name,
