@@ -14,7 +14,7 @@ function setButtonsDisplay(row, isEditing) {
 function getRecordDataFromCell(dataCellList) {
     let returnDict = {};
     dataCellList.forEach(dataCell => {
-        let data = '';
+        let data;
         const input = dataCell.querySelector('input');
         if (input) {
             data = input.value.trim();
