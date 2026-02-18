@@ -58,7 +58,7 @@ jobs:
       - name: Setup Bun and Run ESLint
         run: |
           bun init -y
-          bun add eslint @eslint/js@9.39.1
+          bun add eslint @eslint/js globals
           bunx eslint
   stylelint:
     name: CSS Lint
