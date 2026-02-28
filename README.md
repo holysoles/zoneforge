@@ -56,6 +56,15 @@ docker run -d --rm \
 
 Local installation should work as well. Check the Dockerfile for the latest targeted Python version.
 
+## With UV
+```bash
+git clone https://github.com/holysoles/zoneforge.git
+cd zoneforge
+uv run --no-dev --group prod gunicorn app:production --bind 0.0.0.0:5000 --workers 4
+```
+
+## With pip
+
 ```bash
 git clone https://github.com/holysoles/zoneforge.git
 cd zoneforge
@@ -160,7 +169,17 @@ For each domain that a given DNS server is authorative for:
 
 Contributions are welcome. Please follow [conventional commit syntax](https://www.conventionalcommits.org/en/v1.0.0/).
 
-Install requirements for a dev environment with `pip install -r requirements/dev.txt`.
+uv is recommended to use for downloading dependencies and managing your virtual environment.
+
+```bash
+uv run black .
+uv run pylint $(git ls-files '*.py' | grep -v dnspython)
+uv run pytest
+```
+
+## With pip
+
+Install requirements for a dev environment with: `pip install -r requirements/dev.txt`.
 
 Please note that linting and unit tests are run against Pull Requests. It is recommended you test at least the Python related jobs before committing:
 
@@ -170,7 +189,7 @@ pylint $(git ls-files '*.py' | grep -v dnspython)
 pytest
 ```
 
-For GitHub Actions, [pin-github-action](https://github.com/mheap/pin-github-action) is used to update tag refs to commit hashes
+For GitHub Actions, [pin-github-action](https://github.com/mheap/pin-github-action) is used to resolve tag refs to commit hashes
 
 # Credits
 

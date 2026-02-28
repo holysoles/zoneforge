@@ -1,3 +1,0 @@
--r common.txt
--r ci.txt
-black>=25.9.0,<26.0.0

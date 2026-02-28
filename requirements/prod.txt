@@ -1,2 +1,0 @@
--r common.txt
-gunicorn>=23.0.0,<24.0.0
