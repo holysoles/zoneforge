@@ -3,7 +3,7 @@ name = "zoneforge"
 version = "1.2.4"
 description = "Web Frontend and REST API for DNS Zonefile Management"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies = [
 	"dnspython>=2.8.0,<3.0.0",
 	"Flask>=3.1.1,<4.0.0",
